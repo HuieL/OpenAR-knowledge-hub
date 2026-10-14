@@ -47,6 +47,12 @@ commit later does not remove copies others have cloned.
 - An `independent-rerun` or `transfer-validation` must point at the evidence
   its own run produced (`resultEvidenceIds`). A model reading the record again
   is a `content-review`, not a reproduction.
+- An AI-assisted `content-review` (`aiAssisted: true`) checks that the
+  statement, numbers and tested scope say no more than the record's own
+  evidence shows. It runs nothing, consults nothing else, and does not make a
+  record `accepted`. When the record's author or submitter delegated it, its
+  independence is `same-team`; findings that narrow the wording belong in
+  `limitations`, and the statement itself is revised only by a new revision.
 - Published evidence and assessments are append-only (`validate.py --base
   origin/main` enforces this). Changing the statement, applicability or tested
   scope requires a new `revision`. Narrowing or contradicting someone else's
