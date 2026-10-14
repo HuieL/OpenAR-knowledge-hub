@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/HuieL/OpenAR-knowledge-hub/schemas/knowledge-record.schema.json",
+  "title": "OpenAR Knowledge Record (schemaVersion 1)",
+  "description": "One atomic, conditional, evidence-linked statement. scripts/validate.py is the enforcing contract (it adds cross-field rules this schema cannot express: hash checks, pinned-locator rules, assessment binding, sensitive-content scan, append-only history).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "kind", "revision", "title", "summary", "statement", "applicability", "evidence", "authorReport", "credit", "license", "publication", "files"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z0-9-]{1,39}\\.[a-z0-9][a-z0-9-]{0,87}$", "description": "<github-login>.<slug>; equals the directory name; never reused" },
+    "kind": { "enum": ["finding", "heuristic", "recipe"], "description": "finding: checkable claim in a stated scope; heuristic: conditional rule of thumb; recipe: steps with preconditions, check and failure exit" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "title": { "type": "string", "maxLength": 64 },
+    "summary": { "type": "string", "maxLength": 1000 },
+    "statement": {
+      "type": "object", "additionalProperties": false, "required": ["text"],
+      "properties": {
+        "text": { "type": "string", "maxLength": 2000 },
+        "qualifiers": { "$ref": "#/$defs/shortList" },
+        "doesNotClaim": { "$ref": "#/$defs/shortList", "description": "inferences the evidence does not support" }
+      }
+    },
+    "applicability": {
+      "type": "object", "additionalProperties": false, "required": ["conditions"],
+      "properties": {
+        "conditions": { "$ref": "#/$defs/conditions", "description": "where the author suggests it applies (task, data, method, model, metric, budget, ...)" },
+        "unknowns": { "$ref": "#/$defs/shortList" }
+      }
+    },
+    "testedScope": {
+      "type": ["object", "null"], "additionalProperties": false, "required": ["conditions", "summary"],
+      "properties": { "conditions": { "$ref": "#/$defs/conditions" }, "summary": { "type": "string", "maxLength": 1000 } },
+      "description": "what was actually tested; never inferred from applicability"
+    },
+    "evidence": { "type": "array", "minItems": 1, "maxItems": 32, "items": { "$ref": "#/$defs/evidence" } },
+    "authorReport": {
+      "type": "object", "additionalProperties": false, "required": ["localState", "decidedBy"],
+      "description": "the author's own host state; readers display it as a self-report only",
+      "properties": {
+        "localState": { "enum": ["candidate", "reviewed", "validated-in-scope", "contradicted", "deprecated"] },
+        "decidedBy": { "enum": ["user", "agent", "ai-assisted-local-audit", "none"] },
+        "note": { "type": "string", "maxLength": 500 }
+      }
+    },
+    "assessments": { "type": "array", "items": { "$ref": "#/$defs/assessment" }, "description": "append-only" },
+    "reuseGuidance": {
+      "type": "object", "additionalProperties": false,
+      "properties": { "reusable": { "$ref": "#/$defs/shortList" }, "stillCheck": { "$ref": "#/$defs/shortList" }, "sanityChecks": { "$ref": "#/$defs/shortList" } }
+    },
+    "credit": {
+      "type": "object", "additionalProperties": false, "required": ["authors", "registrySubmitter"],
+      "properties": {
+        "authors": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/person" } },
+        "evidenceContributors": { "type": "array", "items": { "$ref": "#/$defs/person" } },
+        "reviewers": { "type": "array", "items": { "$ref": "#/$defs/person" } },
+        "reproducers": { "type": "array", "items": { "$ref": "#/$defs/person" } },
+        "maintainers": { "type": "array", "items": { "$ref": "#/$defs/person" } },
+        "registrySubmitter": { "$ref": "#/$defs/login" }
+      }
+    },
+    "license": { "type": "string", "description": "SPDX id; CC-BY-4.0 recommended" },
+    "publication": {
+      "type": "object", "additionalProperties": false, "required": ["status", "published"],
+      "properties": {
+        "status": { "enum": ["candidate", "accepted", "retracted", "superseded"] },
+        "published": { "type": "string", "format": "date" },
+        "relations": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["type", "target"],
+            "properties": {
+              "type": { "enum": ["supersedes", "qualifies", "contradicts", "related"] },
+              "target": { "type": "string", "pattern": "^[a-z0-9-]{1,39}\\.[a-z0-9][a-z0-9-]{0,87}@r[1-9][0-9]*$" },
+              "note": { "type": "string", "maxLength": 500 }
+            }
+          }
+        },
+        "notice": { "type": "string", "maxLength": 1000, "description": "required when retracted or superseded" }
+      }
+    },
+    "disclosure": {
+      "type": "object", "additionalProperties": false,
+      "properties": { "omitted": { "$ref": "#/$defs/shortList" }, "verifiabilityImpact": { "type": "string", "maxLength": 1000 } }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["path", "sha256", "bytes"],
+        "properties": {
+          "path": { "type": "string", "pattern": "^evidence/" },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "bytes": { "type": "integer", "minimum": 0, "maximum": 524288 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "shortList": { "type": "array", "maxItems": 16, "items": { "type": "string", "maxLength": 500 } },
+    "conditions": { "type": "object", "maxProperties": 24, "additionalProperties": { "type": "string", "maxLength": 500 } },
+    "login": { "type": "string", "pattern": "^[A-Za-z0-9-]{1,39}$" },
+    "person": {
+      "type": "object", "additionalProperties": false, "required": ["name"],
+      "properties": { "name": { "type": "string", "maxLength": 64 }, "github": { "$ref": "#/$defs/login" }, "contribution": { "type": "string", "maxLength": 300 } }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "relation", "sourceKind", "disclosure", "title", "description", "locator", "originGroup"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,31}$" },
+        "relation": { "enum": ["supports", "contradicts", "qualifies", "inconclusive"] },
+        "sourceKind": { "enum": ["run", "artifact", "paper", "code-test", "human-observation"] },
+        "disclosure": { "enum": ["summary", "checkable-data", "reproducible-package"] },
+        "title": { "type": "string", "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "locator": {
+          "oneOf": [
+            { "type": "object", "additionalProperties": false, "required": ["type", "path"], "properties": { "type": { "const": "hosted" }, "path": { "type": "string" }, "anchor": { "type": "string" } } },
+            { "type": "object", "additionalProperties": false, "required": ["type", "repo", "revision", "path"], "properties": { "type": { "const": "git" }, "repo": { "type": "string" }, "revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" }, "path": { "type": "string" }, "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }, "anchor": { "type": "string" } } },
+            { "type": "object", "additionalProperties": false, "required": ["type", "record", "file", "sha256"], "properties": { "type": { "const": "zenodo" }, "record": { "type": "string", "pattern": "^[0-9]+$" }, "file": { "type": "string" }, "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }, "anchor": { "type": "string" } } },
+            { "type": "object", "additionalProperties": false, "required": ["type", "doi"], "properties": { "type": { "const": "doi" }, "doi": { "type": "string" }, "anchor": { "type": "string" } } },
+            { "type": "object", "additionalProperties": false, "required": ["type", "url", "retrieved"], "properties": { "type": { "const": "url" }, "url": { "type": "string", "pattern": "^https://" }, "retrieved": { "type": "string", "format": "date" }, "anchor": { "type": "string" } } }
+          ]
+        },
+        "comparison": { "$ref": "#/$defs/conditions", "description": "arms, baseline, cohort/split, metric, scorer, seeds, ..." },
+        "derivation": { "type": "string", "maxLength": 1000 },
+        "originGroup": { "type": "string", "maxLength": 64, "description": "evidence sharing a group counts once toward independent support" },
+        "limitations": { "$ref": "#/$defs/shortList" },
+        "contributedBy": { "$ref": "#/$defs/login" }
+      }
+    },
+    "assessment": {
+      "type": "object", "additionalProperties": false,
+      "required": ["assessor", "date", "statementSha256", "evidenceIds", "checkType", "result", "independence", "aiAssisted", "scope", "method"],
+      "properties": {
+        "assessor": { "$ref": "#/$defs/person" },
+        "date": { "type": "string", "format": "date" },
+        "statementSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "sha256 of statement.text as reviewed" },
+        "evidenceIds": { "type": "array", "items": { "type": "string" } },
+        "checkType": { "enum": ["static-package-check", "content-review", "analysis-recompute", "independent-rerun", "transfer-validation"] },
+        "result": { "enum": ["endorses-in-scope", "qualifies-scope", "disputes", "inconclusive"] },
+        "independence": { "enum": ["author", "same-team", "independent"] },
+        "aiAssisted": { "type": "boolean" },
+        "scope": { "type": "string", "maxLength": 1000 },
+        "method": { "type": "string", "maxLength": 1000 },
+        "limitations": { "$ref": "#/$defs/shortList" },
+        "openObligations": { "$ref": "#/$defs/shortList" },
+        "conflictsOfInterest": { "type": "string", "maxLength": 500 },
+        "resultEvidenceIds": { "type": "array", "items": { "type": "string" }, "description": "required for independent-rerun / transfer-validation" }
+      }
+    }
+  }
+}

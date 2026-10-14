@@ -1,0 +1,23 @@
+name: validate
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned to the v4.2.2 commit; bump deliberately.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Validate records, history and index
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          python3 scripts/validate.py --base "origin/$BASE_REF"
+          python3 scripts/build-index.py --check
+          python3 -m unittest discover -s scripts -p 'test_*.py'
