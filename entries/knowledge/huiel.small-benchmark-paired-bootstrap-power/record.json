@@ -3,12 +3,12 @@
   "id": "huiel.small-benchmark-paired-bootstrap-power",
   "kind": "finding",
   "revision": 1,
-  "title": "Small benchmarks rarely resolve 3-5 point accuracy gaps",
-  "summary": "Simulation: on a binary-scored benchmark near 70% accuracy, a paired bootstrap 95% CI detects a true 5-point gap in only 13-19% of 100-item comparisons and 20-34% of 200-item ones (51-76% at 500 items). Median CI half-widths are 7.5-11.0 pp at n=100, 5.3-7.8 pp at n=200, and 3.4-4.9 pp at n=500.",
+  "title": "100-200 item benchmarks rarely resolve a 5-point accuracy gap",
+  "summary": "Simulation: on a binary-scored benchmark near 70% accuracy, a paired bootstrap 95% CI detects a true 5-point gap in only 13-19% of 100-item comparisons and 20-34% of 200-item ones; at 500 items detection rises to 51-76%. Median CI half-widths are 7.5-11.0 pp at n=100, 5.3-7.8 pp at n=200, and 3.4-4.9 pp at n=500.",
   "statement": {
     "text": "For two systems scored pass/fail on the same items at about 70% baseline accuracy, a paired bootstrap 95% CI on the accuracy difference has a median half-width of 7.5-11.0 points at 100 items, 5.3-7.8 at 200 and 3.4-4.9 at 500, and excludes zero for a true 5-point gap in only 13-19% (100 items), 20-34% (200) and 51-76% (500) of comparisons; with no true gap it excludes zero in 3.5-5.2% of comparisons.",
     "qualifiers": [
-      "Ranges span the two simulated between-arm correlation settings (rho 0.5 and 0.8); higher item-level correlation narrows the CI.",
+      "Ranges span the two simulated dependence settings: a shared-difficulty mixing probability rho of 0.5 and 0.8, which induce an item-level correlation between the arms' correctness of about 0.25 and 0.64 (rho squared); higher item-level correlation narrows the CI.",
       "400 simulated comparisons per cell and 1000 bootstrap resamples; rates carry roughly +/-2-5 points of Monte Carlo error."
     ],
     "doesNotClaim": [
@@ -36,7 +36,7 @@
       "items": "100, 200 or 500 items",
       "metric": "accuracy"
     },
-    "summary": "Monte Carlo simulation, stdlib Python, seed 20261014: n in {100, 200, 500}, true gap in {0, 3, 5, 10} points, correlation model rho in {0.5, 0.8}, 400 comparisons per cell, 1000 bootstrap resamples."
+    "summary": "Monte Carlo simulation, stdlib Python, seed 20261014: n in {100, 200, 500}, true gap in {0, 3, 5, 10} points, shared-difficulty mixing probability rho in {0.5, 0.8} (induced item-level correlation about 0.25 / 0.64), 400 comparisons per cell, 1000 bootstrap resamples."
   },
   "evidence": [
     {
@@ -58,7 +58,7 @@
       },
       "originGroup": "paired-bootstrap-sim-20261014",
       "limitations": [
-        "Synthetic items; the correlation model is a simple shared-difficulty mixture."
+        "Synthetic items; dependence comes from a simple shared-difficulty mixture whose column `rho` is the mixing probability, not the between-arm correlation (about rho squared)."
       ]
     },
     {
@@ -72,7 +72,7 @@
         "type": "hosted",
         "path": "evidence/paired_bootstrap_sim.py"
       },
-      "derivation": "Per item, each arm's correctness reuses a shared difficulty draw with probability rho, otherwise an independent draw; arm B's threshold is raised by the true gap.",
+      "derivation": "Per item, each arm independently reuses a shared difficulty draw with probability rho (the mixing probability), otherwise takes its own draw; arm B's threshold is raised by the true gap. Both arms share the draw with probability rho squared, so the item-level correlation of correctness is about rho squared (0.25 / 0.64), not rho.",
       "originGroup": "paired-bootstrap-sim-20261014"
     }
   ],
@@ -86,7 +86,7 @@
       "Use the half-widths as a quick prior for how small a gap a 100-500 item binary benchmark can resolve before planning a comparison."
     ],
     "stillCheck": [
-      "Your benchmark's real item-level agreement between arms (it sets the CI width)",
+      "Your benchmark's real item-level correlation between arms (it sets the CI width); compare it with about 0.25 / 0.64 here, not with the rho column",
       "Whether your metric is binary per item"
     ],
     "sanityChecks": [
