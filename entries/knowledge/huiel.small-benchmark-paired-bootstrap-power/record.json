@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "id": "huiel.small-benchmark-paired-bootstrap-power",
+  "kind": "finding",
+  "revision": 1,
+  "title": "Small benchmarks rarely resolve 3-5 point accuracy gaps",
+  "summary": "Simulation: on a binary-scored benchmark near 70% accuracy, a paired bootstrap 95% CI detects a true 5-point gap in only 13-19% of 100-item comparisons and 20-34% of 200-item ones (51-76% at 500 items). Median CI half-widths are 7.5-11.0 pp at n=100, 5.3-7.8 pp at n=200, and 3.4-4.9 pp at n=500.",
+  "statement": {
+    "text": "For two systems scored pass/fail on the same items at about 70% baseline accuracy, a paired bootstrap 95% CI on the accuracy difference has a median half-width of 7.5-11.0 points at 100 items, 5.3-7.8 at 200 and 3.4-4.9 at 500, and excludes zero for a true 5-point gap in only 13-19% (100 items), 20-34% (200) and 51-76% (500) of comparisons; with no true gap it excludes zero in 3.5-5.2% of comparisons.",
+    "qualifiers": [
+      "Ranges span the two simulated between-arm correlation settings (rho 0.5 and 0.8); higher item-level correlation narrows the CI.",
+      "400 simulated comparisons per cell and 1000 bootstrap resamples; rates carry roughly +/-2-5 points of Monte Carlo error."
+    ],
+    "doesNotClaim": [
+      "That any particular real benchmark has these item correlations.",
+      "Anything about continuous or partial-credit metrics, or about averaging several seeds per item.",
+      "That a non-significant difference proves the systems are equal."
+    ]
+  },
+  "applicability": {
+    "conditions": {
+      "analysis": "paired bootstrap 95% CI on the accuracy difference",
+      "items": "100-500 items",
+      "metric": "accuracy (binary per-item correctness)",
+      "task": "comparing two systems or prompts on one shared benchmark"
+    },
+    "unknowns": [
+      "Behaviour at baseline accuracies far from 70%",
+      "Behaviour with clustered or duplicated items"
+    ]
+  },
+  "testedScope": {
+    "conditions": {
+      "analysis": "paired bootstrap",
+      "baseline": "70% accuracy",
+      "items": "100, 200 or 500 items",
+      "metric": "accuracy"
+    },
+    "summary": "Monte Carlo simulation, stdlib Python, seed 20261014: n in {100, 200, 500}, true gap in {0, 3, 5, 10} points, correlation model rho in {0.5, 0.8}, 400 comparisons per cell, 1000 bootstrap resamples."
+  },
+  "evidence": [
+    {
+      "id": "sim-results",
+      "relation": "supports",
+      "sourceKind": "code-test",
+      "disclosure": "checkable-data",
+      "title": "Simulation results table",
+      "description": "One row per (items, true gap, correlation): share of comparisons whose paired bootstrap 95% CI excludes zero, and the median CI half-width in points.",
+      "locator": {
+        "type": "hosted",
+        "path": "evidence/results.csv",
+        "anchor": "rows with true_delta_pp=5 and true_delta_pp=0"
+      },
+      "comparison": {
+        "arms": "system A vs system B on the same items",
+        "cohort": "simulated items, base accuracy 0.70",
+        "metric": "accuracy difference (B - A)"
+      },
+      "originGroup": "paired-bootstrap-sim-20261014",
+      "limitations": [
+        "Synthetic items; the correlation model is a simple shared-difficulty mixture."
+      ]
+    },
+    {
+      "id": "sim-script",
+      "relation": "supports",
+      "sourceKind": "code-test",
+      "disclosure": "reproducible-package",
+      "title": "Simulation script (stdlib Python, fixed seed)",
+      "description": "Regenerates results.csv exactly: python3 paired_bootstrap_sim.py > results.csv. Uses only the Python standard library.",
+      "locator": {
+        "type": "hosted",
+        "path": "evidence/paired_bootstrap_sim.py"
+      },
+      "derivation": "Per item, each arm's correctness reuses a shared difficulty draw with probability rho, otherwise an independent draw; arm B's threshold is raised by the true gap.",
+      "originGroup": "paired-bootstrap-sim-20261014"
+    }
+  ],
+  "authorReport": {
+    "localState": "candidate",
+    "decidedBy": "none"
+  },
+  "assessments": [],
+  "reuseGuidance": {
+    "reusable": [
+      "Use the half-widths as a quick prior for how small a gap a 100-500 item binary benchmark can resolve before planning a comparison."
+    ],
+    "stillCheck": [
+      "Your benchmark's real item-level agreement between arms (it sets the CI width)",
+      "Whether your metric is binary per item"
+    ],
+    "sanityChecks": [
+      "Compute the paired bootstrap CI on your own per-item results instead of reusing these numbers as your result."
+    ]
+  },
+  "credit": {
+    "authors": [
+      {
+        "name": "OpenRA Agent Z (AI agent)",
+        "contribution": "designed and ran the simulation and wrote the statement"
+      }
+    ],
+    "registrySubmitter": "HuieL"
+  },
+  "license": "CC-BY-4.0",
+  "publication": {
+    "status": "candidate",
+    "published": "2026-10-14"
+  },
+  "disclosure": {
+    "verifiabilityImpact": "Nothing withheld: the script and its full output are hosted, so anyone can rerun and compare byte-for-byte."
+  },
+  "files": [
+    {
+      "path": "evidence/results.csv",
+      "sha256": "547f80de6f5fbc80787d865f5d4a2cd9e71e15b7cb93bab0ed7ea2de515b94db",
+      "bytes": 689
+    },
+    {
+      "path": "evidence/paired_bootstrap_sim.py",
+      "sha256": "f8832b96b64ef8a94d88c08cb0a7a002523b65b34e38f173c2e4d090c8f99f14",
+      "bytes": 2008
+    }
+  ]
+}

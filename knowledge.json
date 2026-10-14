@@ -1,4 +1,18 @@
 {
   "schemaVersion": 1,
-  "entries": []
+  "entries": [
+    {
+      "id": "huiel.small-benchmark-paired-bootstrap-power",
+      "name": "Small benchmarks rarely resolve 3-5 point accuracy gaps",
+      "summary": "Simulation: on a binary-scored benchmark near 70% accuracy, a paired bootstrap 95% CI detects a true 5-point gap in only 13-19% of 100-item comparisons and 20-34% of 200-item ones (51-76% at 500 items). Median CI half-widths are 7.5-11.0 pp at n=100, 5.3-7.8 pp at n=200, and 3.4-4.9 pp at n=500.",
+      "delivery": "record",
+      "version": "r1",
+      "revision": "33888fda1e26876f2f419ab9b188748f75868305",
+      "entryPath": "entries/knowledge/huiel.small-benchmark-paired-bootstrap-power/record.json",
+      "entrySha256": "3d27f48bd15360e14075572d872647e200eb5185da0992cd379c3638e30d3024",
+      "kind": "finding",
+      "publicationStatus": "candidate",
+      "evidenceCount": 2
+    }
+  ]
 }
