@@ -79,6 +79,46 @@ SENSITIVE = [
 errors: list[str] = []
 
 
+# Namespaces a record may not claim: they would read as a client's own voice.
+RESERVED_NAMESPACES = {"openra", "openar", "ora", "system", "admin"}
+# Readers frame each record in this tag when handing it to an agent; record
+# text may not contain it, so no field can close the frame.
+FRAME_TAG = "external-knowledge"
+
+
+def forging_char(c: str) -> bool:
+    """Characters that forge structure in a prompt or terminal: controls
+    (ANSI escapes, newlines faking a context line), bidi overrides/isolates,
+    zero-width and Unicode tag characters. Record strings are single-line."""
+    o = ord(c)
+    return (
+        o < 0x20 or 0x7F <= o <= 0x9F
+        or o == 0x061C or 0x200B <= o <= 0x200F or 0x202A <= o <= 0x202E
+        or 0x2060 <= o <= 0x2064 or 0x2066 <= o <= 0x2069 or o == 0xFEFF
+        or 0xE0000 <= o <= 0xE007F
+    )
+
+
+def unsafe_strings(value, path="") -> list:
+    """Every string and object key anywhere in the record, checked."""
+    found = []
+    items = []
+    if isinstance(value, str):
+        if any(forging_char(c) for c in value):
+            found.append(f"{path or '/'}: control, bidi, zero-width or tag characters")
+        if FRAME_TAG in value.lower():
+            found.append(f"{path or '/'}: contains the reader context frame tag")
+    elif isinstance(value, dict):
+        for key, child in value.items():
+            found += unsafe_strings(key, f"{path}/{key!r}")
+            items.append((f"{path}/{key}", child))
+    elif isinstance(value, list):
+        items = [(f"{path}/{i}", child) for i, child in enumerate(value)]
+    for child_path, child in items:
+        found += unsafe_strings(child, child_path)
+    return found
+
+
 def fail(where: str, message: str) -> None:
     errors.append(f"{where}: {message}")
 
@@ -319,6 +359,10 @@ def check_record(record_dir: pathlib.Path) -> None:
         fail(rid, "schemaVersion must be 1")
     if record["id"] != rid or not RECORD_ID.match(rid):
         fail(rid, "id must equal the directory name and be <github-login>.<slug> (lowercase)")
+    elif rid.split(".", 1)[0] in RESERVED_NAMESPACES:
+        fail(rid, f"namespace {rid.split('.', 1)[0]!r} is reserved")
+    for problem in unsafe_strings(record):
+        fail(rid, f"unsafe text at {problem}")
     if record["kind"] not in KINDS:
         fail(rid, f"kind must be one of {sorted(KINDS)} (observations travel as evidence, not records)")
     if not isinstance(record["revision"], int) or isinstance(record["revision"], bool) or record["revision"] < 1:
