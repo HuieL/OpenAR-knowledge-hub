@@ -126,7 +126,8 @@
         "derivation": { "type": "string", "maxLength": 1000 },
         "originGroup": { "type": "string", "maxLength": 64, "description": "evidence sharing a group counts once toward independent support" },
         "limitations": { "$ref": "#/$defs/shortList" },
-        "contributedBy": { "$ref": "#/$defs/login" }
+        "contributedBy": { "$ref": "#/$defs/login" },
+        "testItems": { "type": "boolean", "description": "per-item answers, gold labels or test samples of a shared benchmark: never hosted here (contamination); readers keep them out of agent context" }
       }
     },
     "assessment": {

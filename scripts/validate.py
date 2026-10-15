@@ -248,7 +248,7 @@ def check_evidence(rid: str, evidence, hosted: dict) -> dict:
             continue
         extra = set(item) - {
             "id", "relation", "sourceKind", "disclosure", "title", "description", "locator",
-            "comparison", "derivation", "originGroup", "limitations", "contributedBy",
+            "comparison", "derivation", "originGroup", "limitations", "contributedBy", "testItems",
         }
         if extra:
             fail(where, f"unknown fields {sorted(extra)}")
@@ -278,6 +278,14 @@ def check_evidence(rid: str, evidence, hosted: dict) -> dict:
             fail(where, "limitations must be a list of short texts")
         if "contributedBy" in item and not (isinstance(item["contributedBy"], str) and HANDLE.match(item["contributedBy"])):
             fail(where, "contributedBy must be a GitHub login")
+        # Per-item answers, gold labels or test samples of a shared benchmark:
+        # the hub never re-hosts them (a public copy contaminates the test set);
+        # point at the benchmark's own pinned source instead. Readers keep such
+        # evidence out of an agent's context.
+        if "testItems" in item and not isinstance(item["testItems"], bool):
+            fail(where, "testItems must be true or false")
+        if item.get("testItems") is True and isinstance(item.get("locator"), dict) and item["locator"].get("type") == "hosted":
+            fail(where, "test items of a shared benchmark are not hosted here; point to the benchmark's own pinned source (git@commit / zenodo) or summarise")
     return by_id
 
 
