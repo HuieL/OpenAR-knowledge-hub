@@ -25,4 +25,4 @@ live in the OpenRA repository (M-KHUB); this file tracks hub-side work only.
 ## M3 — evidence-grounded paper review (consumer side, in OpenRA)
 
 ## Contract additions
-- [ ] `testItems` evidence flag (benchmark per-item answers / gold labels / test samples never hosted here; readers keep them out of agent context) — `agent-z/test-items@45cda4d`, 25 unittest OK; client side in OpenRA khub-m1 `d2b6a66e`
+- [x] `testItems` evidence flag — merged to main `45cda4d` (25 unittest OK); client side in OpenRA khub-m1 `d2b6a66e`
