@@ -26,3 +26,4 @@ live in the OpenRA repository (M-KHUB); this file tracks hub-side work only.
 
 ## Contract additions
 - [x] `testItems` evidence flag — merged to main `45cda4d` (25 unittest OK); client side in OpenRA khub-m1 `d2b6a66e`
+- [ ] README describes `testItems` — `agent-z/readme-test-items@c497e12`
