@@ -52,6 +52,12 @@ Each evidence item states what a reader can actually do with it:
 A record whose evidence is all `summary` can still be shared as a marked lead,
 but it must say how that limits verification.
 
+Evidence that is per-item answers, gold labels or test samples of a shared
+benchmark is marked `"testItems": true`. It is never hosted here — a public
+copy contaminates the test set — and points to the benchmark's own pinned
+source instead; readers keep it out of an agent's context, so it is opened
+for analysis, never inside an evaluation run.
+
 ## License
 
 Repository scripts and schema: MIT (see `LICENSE`). Each record states its own
