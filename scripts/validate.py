@@ -127,8 +127,15 @@ def sha256(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
+# A path is quoted inside a reviewer's <file path="..."> frame and shown in
+# terminals; quotes and angle brackets could break out of either.
+PATH_FORBIDDEN = set('"<>`')
+
+
 def safe_rel_path(raw) -> bool:
     if not isinstance(raw, str) or not raw or raw.startswith("/") or "\\" in raw:
+        return False
+    if PATH_FORBIDDEN & set(raw):
         return False
     return all(part not in ("", ".", "..") for part in raw.split("/"))
 

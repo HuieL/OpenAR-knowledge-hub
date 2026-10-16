@@ -159,6 +159,19 @@ class ValidateTests(unittest.TestCase):
             reg.close()
         self.assertIn("needs a pinned locator", result.stderr)
 
+    def test_locator_paths_cannot_carry_quotes_or_brackets(self):
+        for bad in ['test/a"b.jsonl', "test/<file>.jsonl", "test/a`b"]:
+            record = base_record()
+            record["evidence"][0]["locator"] = {"type": "git", "repo": "octo/bench", "revision": "a" * 40, "path": bad}
+            record["files"] = []
+            reg = Registry(record)
+            try:
+                (reg.root / "entries" / "knowledge" / RID / "evidence" / "data.csv").unlink()
+                result = reg.run()
+            finally:
+                reg.close()
+            self.assertIn("git locator path must be a safe relative path", result.stderr, bad)
+
     def test_benchmark_test_items_are_never_hosted(self):
         record = base_record()
         record["evidence"][0]["testItems"] = True
