@@ -75,6 +75,34 @@
       },
       "derivation": "Per item, each arm independently reuses a shared difficulty draw with probability rho (the mixing probability), otherwise takes its own draw; arm B's threshold is raised by the true gap. Both arms share the draw with probability rho squared, so the item-level correlation of correctness is about rho squared (0.25 / 0.64), not rho.",
       "originGroup": "paired-bootstrap-sim-20261014"
+    },
+    {
+      "id": "rerun-n200-gap5",
+      "relation": "supports",
+      "sourceKind": "code-test",
+      "disclosure": "reproducible-package",
+      "title": "Re-run at 200 items, 5-point gap, rho 0.5 (new script and seed)",
+      "description": "check_power.py (stdlib Python, seed 16102026, independent of paired_bootstrap_sim.py's code and seed), run as `python3 check_power.py 1000 1000`: 1000 trials x 1000 percentile-bootstrap resamples. Output: detection rate 0.225 (SE 1.3 pp) vs the record's 0.203; median half-width 7.75 vs 7.8 points.",
+      "locator": {
+        "type": "hosted",
+        "path": "evidence/rerun_n200_gap5.txt"
+      },
+      "originGroup": "rerun-check-power-20261016",
+      "contributedBy": "HuieL"
+    },
+    {
+      "id": "rerun-script",
+      "relation": "supports",
+      "sourceKind": "code-test",
+      "disclosure": "reproducible-package",
+      "title": "Re-run script (stdlib Python, fixed seed)",
+      "description": "Regenerates rerun_n200_gap5.txt: python3 check_power.py 1000 1000.",
+      "locator": {
+        "type": "hosted",
+        "path": "evidence/check_power.py"
+      },
+      "originGroup": "rerun-check-power-20261016",
+      "contributedBy": "HuieL"
     }
   ],
   "authorReport": {
@@ -120,6 +148,37 @@
       ],
       "conflictsOfInterest": "Delegated by @HuieL on their own host, who authored or submitted the record.",
       "resultEvidenceIds": []
+    },
+    {
+      "assessor": {
+        "name": "HuieL",
+        "github": "HuieL"
+      },
+      "date": "2026-10-16",
+      "statementSha256": "24cb3bd0c8b7682c17a15d2eeca48ca70bbf86ada3da153d9cbd84e608c686de",
+      "evidenceIds": [
+        "sim-results",
+        "rerun-n200-gap5",
+        "rerun-script"
+      ],
+      "checkType": "independent-rerun",
+      "result": "endorses-in-scope",
+      "independence": "author",
+      "aiAssisted": true,
+      "scope": "200 items, ~70% base accuracy, true gap 5 points, shared-difficulty mixing rho 0.5: detection rate and median CI half-width",
+      "method": "Wrote a new simulation (own code and seed) for one cell of the record's grid and ran it once at 1000 trials x 1000 resamples; compared with the record's row n=200, gap 5, rho 0.5. Also regenerated the record's results.csv with its own script: sha256 matches.",
+      "limitations": [
+        "One cell of the grid (n=200, gap 5, rho 0.5) only.",
+        "By the record's own author: not an independent assessment.",
+        "An earlier 300-trial x 600-resample run of the same script gave 0.310 (SE 2.7 pp); the 1000x1000 run supersedes it."
+      ],
+      "openObligations": [
+        "An independent rerun by someone outside the author's team."
+      ],
+      "conflictsOfInterest": "Submitted by the record's registry submitter (HuieL), run by Agent Z on their delegation.",
+      "resultEvidenceIds": [
+        "rerun-n200-gap5"
+      ]
     }
   ],
   "reuseGuidance": {
@@ -139,6 +198,24 @@
       {
         "name": "OpenRA Agent Z (AI agent)",
         "contribution": "designed and ran the simulation and wrote the statement"
+      }
+    ],
+    "evidenceContributors": [
+      {
+        "name": "HuieL",
+        "github": "HuieL"
+      }
+    ],
+    "reviewers": [
+      {
+        "name": "HuieL",
+        "github": "HuieL"
+      }
+    ],
+    "reproducers": [
+      {
+        "name": "HuieL",
+        "github": "HuieL"
       }
     ],
     "registrySubmitter": "HuieL"
@@ -161,6 +238,16 @@
       "path": "evidence/paired_bootstrap_sim.py",
       "sha256": "f8832b96b64ef8a94d88c08cb0a7a002523b65b34e38f173c2e4d090c8f99f14",
       "bytes": 2008
+    },
+    {
+      "path": "evidence/rerun_n200_gap5.txt",
+      "sha256": "f8d73a82fe3fe135e8911bb0422b9e493d1ef2db46e204c6dd435b088bffc942",
+      "bytes": 120
+    },
+    {
+      "path": "evidence/check_power.py",
+      "sha256": "0f2be392c65352830c10264ec5349001f6228093132abed22040d9ec57b259e5",
+      "bytes": 1263
     }
   ]
 }
