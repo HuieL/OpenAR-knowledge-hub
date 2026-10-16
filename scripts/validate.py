@@ -20,6 +20,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 ENTRIES = ROOT / "entries" / "knowledge"
+PACKAGES = ROOT / "packages"
 MAX_FILE_BYTES = 512 * 1024
 MAX_ENTRY_BYTES = 2 * 1024 * 1024
 MAX_EVIDENCE = 32
@@ -30,8 +31,8 @@ PUBLICATION_STATUSES = {"candidate", "accepted", "retracted", "superseded"}
 RELATIONS = {"supports", "contradicts", "qualifies", "inconclusive"}
 SOURCE_KINDS = {"run", "artifact", "paper", "code-test", "human-observation"}
 DISCLOSURES = {"summary", "checkable-data", "reproducible-package"}
-LOCATOR_TYPES = {"hosted", "git", "zenodo", "doi", "url"}
-PINNED_LOCATORS = {"hosted", "git", "zenodo"}
+LOCATOR_TYPES = {"hosted", "package", "git", "zenodo", "doi", "url"}
+PINNED_LOCATORS = {"hosted", "package", "git", "zenodo"}
 LOCAL_STATES = {"candidate", "reviewed", "validated-in-scope", "contradicted", "deprecated"}
 DECIDERS = {"user", "agent", "ai-assisted-local-audit", "none"}
 CHECK_TYPES = {"static-package-check", "content-review", "analysis-recompute",
@@ -206,6 +207,7 @@ def check_locator(where: str, loc, hosted: dict) -> str:
     kind = loc["type"]
     allowed = {
         "hosted": {"type", "path", "anchor"},
+        "package": {"type", "package", "path", "anchor"},
         "git": {"type", "repo", "revision", "path", "sha256", "anchor"},
         "zenodo": {"type", "record", "file", "sha256", "anchor"},
         "doi": {"type", "doi", "anchor"},
@@ -218,6 +220,10 @@ def check_locator(where: str, loc, hosted: dict) -> str:
     if kind == "hosted":
         if loc.get("path") not in hosted:
             fail(where, "hosted locator path must be listed in files")
+    elif kind == "package":
+        # Evidence shared by a Knowledge Package, hosted once in packages/<id>/.
+        if loc.get("path") not in PACKAGE_FILES.get(loc.get("package"), {}):
+            fail(where, "package locator must name a package in this registry and a file it lists")
     elif kind == "git":
         if not isinstance(loc.get("repo"), str) or not REPO.match(loc["repo"]):
             fail(where, "git locator repo must be owner/name on github.com")
@@ -406,47 +412,7 @@ def check_record(record_dir: pathlib.Path) -> None:
     ):
         fail(rid, "testedScope must have conditions and summary (or be null when nothing was tested)")
 
-    files = record["files"]
-    hosted = {}
-    total = 0
-    if not isinstance(files, list):
-        fail(rid, "files must be a list (empty when nothing is hosted)")
-        files = []
-    for item in files:
-        if not isinstance(item, dict) or set(item) != {"path", "sha256", "bytes"}:
-            fail(rid, "each file needs exactly path, sha256, bytes")
-            continue
-        path = item["path"]
-        if not safe_rel_path(path) or not path.startswith("evidence/"):
-            fail(rid, f"hosted file {path!r} must live under evidence/")
-            continue
-        if pathlib.PurePosixPath(path).suffix.lower() not in HOSTED_SUFFIXES:
-            fail(rid, f"hosted file {path!r} has an unsupported type (data, text and small scripts only)")
-        full = record_dir / path
-        if full.is_symlink() or not full.is_file():
-            fail(rid, f"hosted file {path!r} is missing or a symlink")
-            continue
-        body = full.read_bytes()
-        if len(body) != item["bytes"] or sha256(body) != item["sha256"]:
-            fail(rid, f"hosted file {path!r} does not match its manifest size/sha256")
-        if len(body) > MAX_FILE_BYTES:
-            fail(rid, f"hosted file {path!r} exceeds {MAX_FILE_BYTES} bytes; use a pinned git/zenodo locator")
-        if full.stat().st_mode & 0o111:
-            fail(rid, f"hosted file {path!r} must not be executable")
-        try:
-            scan_sensitive(f"{rid} {path}", body.decode("utf-8"))
-        except UnicodeDecodeError:
-            fail(rid, f"hosted file {path!r} must be UTF-8 text")
-        hosted[path] = item
-        total += len(body)
-    if total > MAX_ENTRY_BYTES:
-        fail(rid, f"hosted evidence exceeds {MAX_ENTRY_BYTES} bytes")
-    for path in record_dir.rglob("*"):
-        rel = path.relative_to(record_dir).as_posix()
-        if path.is_symlink():
-            fail(rid, f"symlink {rel!r} is not allowed")
-        elif path.is_file() and rel != "record.json" and rel not in hosted:
-            fail(rid, f"{rel!r} is not listed in files")
+    hosted = check_files(rid, record_dir, record["files"], "record.json")
 
     evidence = check_evidence(rid, record["evidence"], hosted)
     if not any(e.get("disclosure") != "summary" for e in evidence.values()):
@@ -543,15 +509,227 @@ def check_history(base: str) -> None:
             fail(old_path, "published records cannot be deleted; retract them instead")
 
 
+# --- Knowledge Packages -----------------------------------------------------
+# A package groups several records and the evidence/experiments they share
+# (a research output, RO-Crate style). Records stay the unit agents retrieve;
+# the package is how they are published, reviewed and fetched together.
+PACKAGE_FILES: dict = {}
+PACKAGE_FIELDS = {"schemaVersion", "id", "revision", "title", "summary", "records", "files", "experiments",
+                  "dependencies", "reproduction", "disclosure", "credit", "license", "publication"}
+DEPENDENCY_KINDS = {"record", "dataset", "code", "paper", "model"}
+
+
+def check_files(where: str, base: pathlib.Path, files, manifest_name: str) -> dict:
+    """Shared by records and packages: every hosted file listed, pinned, small, text, scanned."""
+    hosted, total = {}, 0
+    if not isinstance(files, list):
+        fail(where, "files must be a list (empty when nothing is hosted)")
+        return hosted
+    for item in files:
+        if not isinstance(item, dict) or set(item) != {"path", "sha256", "bytes"}:
+            fail(where, "each file needs exactly path, sha256, bytes")
+            continue
+        path = item["path"]
+        if not safe_rel_path(path) or not path.startswith("evidence/"):
+            fail(where, f"hosted file {path!r} must live under evidence/")
+            continue
+        if pathlib.PurePosixPath(path).suffix.lower() not in HOSTED_SUFFIXES:
+            fail(where, f"hosted file {path!r} has an unsupported type (data, text and small scripts only)")
+        full = base / path
+        if full.is_symlink() or not full.is_file():
+            fail(where, f"hosted file {path!r} is missing or a symlink")
+            continue
+        body = full.read_bytes()
+        if len(body) != item["bytes"] or sha256(body) != item["sha256"]:
+            fail(where, f"hosted file {path!r} does not match its manifest size/sha256")
+        if len(body) > MAX_FILE_BYTES:
+            fail(where, f"hosted file {path!r} exceeds {MAX_FILE_BYTES} bytes; use a pinned git/zenodo locator")
+        if full.stat().st_mode & 0o111:
+            fail(where, f"hosted file {path!r} must not be executable")
+        try:
+            scan_sensitive(f"{where} {path}", body.decode("utf-8"))
+        except UnicodeDecodeError:
+            fail(where, f"hosted file {path!r} must be UTF-8 text")
+        hosted[path] = item
+        total += len(body)
+    if total > MAX_ENTRY_BYTES:
+        fail(where, f"hosted evidence exceeds {MAX_ENTRY_BYTES} bytes")
+    for path in base.rglob("*"):
+        rel = path.relative_to(base).as_posix()
+        if path.is_symlink():
+            fail(where, f"symlink {rel!r} is not allowed")
+        elif path.is_file() and rel != manifest_name and rel not in hosted:
+            fail(where, f"{rel!r} is not listed in files")
+    return hosted
+
+
+def load_package_files() -> None:
+    """Pass 1: the file manifests, so record locators can point into packages."""
+    if not PACKAGES.is_dir():
+        return
+    for package_dir in sorted(PACKAGES.iterdir()):
+        manifest = package_dir / "package.json"
+        if package_dir.is_dir() and not package_dir.is_symlink() and manifest.is_file():
+            try:
+                package = json.loads(manifest.read_bytes())
+            except ValueError:
+                continue
+            if isinstance(package, dict) and package.get("id") == package_dir.name:
+                PACKAGE_FILES[package_dir.name] = check_files(package_dir.name, package_dir, package.get("files", []), "package.json")
+
+
+def record_revisions() -> dict:
+    out = {}
+    if ENTRIES.is_dir():
+        for record_path in ENTRIES.glob("*/record.json"):
+            try:
+                record = json.loads(record_path.read_bytes())
+                out[record["id"]] = record["revision"]
+            except (ValueError, KeyError, TypeError):
+                pass
+    return out
+
+
+def check_package(package_dir: pathlib.Path, revisions: dict) -> None:
+    pid = package_dir.name
+    manifest = package_dir / "package.json"
+    if not manifest.is_file():
+        fail(pid, "missing package.json")
+        return
+    raw = manifest.read_bytes()
+    try:
+        package = json.loads(raw)
+    except ValueError as e:
+        fail(pid, f"package.json is not JSON: {e}")
+        return
+    if not isinstance(package, dict):
+        fail(pid, "package.json must be an object")
+        return
+    unknown = set(package) - PACKAGE_FIELDS
+    if unknown:
+        fail(pid, f"unknown fields: {sorted(unknown)}")
+    missing = {"schemaVersion", "id", "revision", "title", "summary", "records", "credit", "license", "publication"} - set(package)
+    if missing:
+        fail(pid, f"missing fields: {sorted(missing)}")
+        return
+    if package["schemaVersion"] != 1:
+        fail(pid, "schemaVersion must be 1")
+    if package["id"] != pid or not RECORD_ID.match(pid):
+        fail(pid, "id must equal the directory name and be <github-login>.<slug> (lowercase)")
+    elif pid.split(".", 1)[0] in RESERVED_NAMESPACES:
+        fail(pid, f"namespace {pid.split('.', 1)[0]!r} is reserved")
+    for problem in unsafe_strings(package):
+        fail(pid, f"unsafe text at {problem}")
+    if not isinstance(package["revision"], int) or isinstance(package["revision"], bool) or package["revision"] < 1:
+        fail(pid, "revision must be a positive integer")
+    if not text(package["title"], 64) or not text(package["summary"], 1000):
+        fail(pid, "title (<=64) and summary (<=1000) are required")
+    records = package["records"]
+    if not isinstance(records, list) or not 1 <= len(records) <= 32:
+        fail(pid, "records must list 1..32 member records")
+        records = []
+    seen = set()
+    for member in records:
+        if not isinstance(member, dict) or set(member) != {"id", "revision"}:
+            fail(pid, "each member is {id, revision}")
+            continue
+        if member["id"] in seen:
+            fail(pid, f"record {member['id']!r} is listed twice")
+        seen.add(member["id"])
+        if revisions.get(member["id"]) != member["revision"]:
+            fail(pid, f"member {member['id']}@r{member['revision']} is not a record in this registry at that revision")
+    files = PACKAGE_FILES.get(pid, {})
+    experiments = package.get("experiments", [])
+    if not isinstance(experiments, list) or len(experiments) > 32:
+        fail(pid, "experiments must be a list of at most 32")
+        experiments = []
+    for exp in experiments:
+        if not isinstance(exp, dict) or set(exp) - {"id", "title", "description", "config", "metrics", "files", "records"} \
+                or not EVIDENCE_ID.match(str(exp.get("id", ""))) or not text(exp.get("title"), 200) \
+                or ("description" in exp and not text(exp["description"], 1000)) \
+                or ("config" in exp and not text(exp["config"], 1000)) \
+                or not text_list(exp.get("metrics", []), 16, 300):
+            fail(pid, "experiments are {id, title, description?, config?, metrics[], files[], records[]}")
+            continue
+        if any(f not in files for f in exp.get("files", [])):
+            fail(pid, f"experiment {exp['id']!r} names a file the package does not list")
+        if any(r not in seen for r in exp.get("records", [])):
+            fail(pid, f"experiment {exp['id']!r} names a record that is not a member")
+    deps = package.get("dependencies", [])
+    if not isinstance(deps, list) or len(deps) > 32 or any(
+        not isinstance(d, dict) or set(d) - {"kind", "ref", "pinned", "note"} or d.get("kind") not in DEPENDENCY_KINDS
+        or not text(d.get("ref"), 300) or ("pinned" in d and not text(d["pinned"], 200))
+        or ("note" in d and not text(d["note"], 300))
+        for d in deps
+    ):
+        fail(pid, f"dependencies are {{kind: {sorted(DEPENDENCY_KINDS)}, ref, pinned?, note?}}")
+    repro = package.get("reproduction", {})
+    if not isinstance(repro, dict) or set(repro) - {"environment", "commands", "expectedOutputs", "cost"} \
+            or ("environment" in repro and not text(repro["environment"], 500)) \
+            or not text_list(repro.get("commands", []), 16, 300) or not text_list(repro.get("expectedOutputs", []), 16, 300) \
+            or ("cost" in repro and not text(repro["cost"], 200)):
+        fail(pid, "reproduction is {environment?, commands[], expectedOutputs[], cost?}")
+    disclosure = package.get("disclosure", {})
+    if not isinstance(disclosure, dict) or set(disclosure) - {"withheld", "redactions", "verifiabilityImpact"} \
+            or not text_list(disclosure.get("withheld", []), 32, 300) or not text_list(disclosure.get("redactions", []), 32, 300) \
+            or ("verifiabilityImpact" in disclosure and not text(disclosure["verifiabilityImpact"], 1000)):
+        fail(pid, "disclosure is {withheld[], redactions[], verifiabilityImpact?}")
+    check_credit(pid, package["credit"])
+    if not (isinstance(package["license"], str) and re.match(r"^[A-Za-z0-9.+-]{2,40}$", package["license"])):
+        fail(pid, "license must be an SPDX id")
+    publication = package["publication"]
+    if not isinstance(publication, dict) or set(publication) - {"status", "published", "notice"} \
+            or publication.get("status") not in PUBLICATION_STATUSES \
+            or not (isinstance(publication.get("published"), str) and DATE.match(publication["published"])):
+        fail(pid, "publication is {status, published: YYYY-MM-DD, notice?}")
+    scan_sensitive(f"{pid} package.json", raw.decode("utf-8"))
+
+
+def check_package_history(base: str) -> None:
+    """Packages are append-only like records: members and files are not removed
+    or edited without a new revision; published packages are not deleted."""
+    if PACKAGES.is_dir():
+        for manifest in sorted(PACKAGES.glob("*/package.json")):
+            rel = manifest.relative_to(ROOT).as_posix()
+            old = git_show(base, rel)
+            if old is None:
+                continue
+            new = json.loads(manifest.read_bytes())
+            pid = new.get("id", rel)
+            if old == new:
+                continue
+            if new.get("revision", 0) <= old.get("revision", 0):
+                fail(pid, "a published package changed without a new revision")
+            old_files = {f["path"]: f for f in old.get("files", [])}
+            new_files = {f["path"]: f for f in new.get("files", [])}
+            for path, item in old_files.items():
+                if new_files.get(path) != item:
+                    fail(pid, f"published package file {path!r} was removed or edited")
+    for old_path in subprocess.run(
+        ["git", "ls-tree", "-r", "--name-only", base, "packages/"], cwd=ROOT, capture_output=True, text=True,
+    ).stdout.split():
+        if old_path.endswith("package.json") and not (ROOT / old_path).exists():
+            fail(old_path, "published packages cannot be deleted; retract them instead")
+
+
 def main() -> None:
+    load_package_files()
     if ENTRIES.is_dir():
         for record_dir in sorted(p for p in ENTRIES.iterdir()):
             if record_dir.is_symlink() or not record_dir.is_dir():
                 fail(record_dir.name, "entries/knowledge may only contain record directories")
                 continue
             check_record(record_dir)
+    if PACKAGES.is_dir():
+        revisions = record_revisions()
+        for package_dir in sorted(p for p in PACKAGES.iterdir()):
+            if package_dir.is_symlink() or not package_dir.is_dir():
+                fail(package_dir.name, "packages may only contain package directories")
+                continue
+            check_package(package_dir, revisions)
     if "--base" in sys.argv:
         check_history(sys.argv[sys.argv.index("--base") + 1])
+        check_package_history(sys.argv[sys.argv.index("--base") + 1])
     for path in ROOT.rglob("*"):
         if path.is_symlink() and ".git" not in path.parts:
             fail(path.relative_to(ROOT).as_posix(), "symlinks are not allowed")
@@ -559,7 +737,8 @@ def main() -> None:
         print("\n".join(errors), file=sys.stderr)
         sys.exit(f"{len(errors)} problem(s)")
     count = len(list(ENTRIES.glob("*/record.json"))) if ENTRIES.is_dir() else 0
-    print(f"ok: {count} record(s) valid")
+    packages = len(list(PACKAGES.glob("*/package.json"))) if PACKAGES.is_dir() else 0
+    print(f"ok: {count} record(s), {packages} package(s) valid")
 
 
 if __name__ == "__main__":

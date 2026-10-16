@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Generate knowledge.json from entries/knowledge/*/record.json.
+"""Generate knowledge.json from entries/knowledge/*/record.json and
+packages/*/package.json.
 
 The index is a rebuildable projection of the records; it is never hand-edited.
 Run with --check to verify the committed index is current without writing.
@@ -10,6 +11,11 @@ object id of record.json (what `git hash-object record.json` prints), so a
 reader can match the pinned bytes against any clone. Knowledge-only display
 fields (kind, publicationStatus, evidenceCount) follow; the record itself is
 the only authority.
+
+Knowledge Packages are listed under a separate top-level `packages` key (the
+shared `entries` row contract stays records only, so clients that predate
+packages keep working): id, name, summary, version, revision, entryPath,
+entrySha256, records (member `id@rN`).
 """
 
 import hashlib
@@ -19,6 +25,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 ENTRIES = ROOT / "entries" / "knowledge"
+PACKAGES = ROOT / "packages"
 
 
 def git_blob_id(raw: bytes) -> str:
@@ -47,7 +54,28 @@ def build() -> dict:
                 }
             )
     rows.sort(key=lambda row: row["id"])
-    return {"schemaVersion": 1, "entries": rows}
+    index = {"schemaVersion": 1, "entries": rows}
+    packages = []
+    if PACKAGES.is_dir():
+        for manifest in sorted(PACKAGES.glob("*/package.json")):
+            raw = manifest.read_bytes()
+            package = json.loads(raw)
+            packages.append(
+                {
+                    "id": package["id"],
+                    "name": package["title"],
+                    "summary": package["summary"],
+                    "version": f"r{package['revision']}",
+                    "revision": git_blob_id(raw),
+                    "entryPath": manifest.relative_to(ROOT).as_posix(),
+                    "entrySha256": hashlib.sha256(raw).hexdigest(),
+                    "records": [f"{m['id']}@r{m['revision']}" for m in package["records"]],
+                    "publicationStatus": package["publication"]["status"],
+                }
+            )
+    if packages:
+        index["packages"] = packages
+    return index
 
 
 def render(index: dict) -> str:
@@ -62,7 +90,7 @@ def main() -> None:
         current = path.read_text() if path.exists() else ""
         if current != rendered:
             sys.exit("knowledge.json is stale; run scripts/build-index.py and commit it")
-        print(f"knowledge.json is current ({len(index['entries'])} records)")
+        print(f"knowledge.json is current ({len(index['entries'])} records, {len(index.get('packages', []))} packages)")
         return
     path.write_text(rendered)
     print(f"wrote knowledge.json ({len(index['entries'])} records)")

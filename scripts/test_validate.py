@@ -95,6 +95,99 @@ class Registry:
         shutil.rmtree(self.root, ignore_errors=True)
 
 
+SHARED = b"run,metric\nr1,0.71\n"
+PID = "octo.fixture-package"
+
+
+def base_package() -> dict:
+    return {
+        "schemaVersion": 1, "id": PID, "revision": 1,
+        "title": "Fixture package", "summary": "Two claims from one study, with shared evidence.",
+        "records": [{"id": RID, "revision": 1}],
+        "files": [{"path": "evidence/shared.csv", "sha256": hashlib.sha256(SHARED).hexdigest(), "bytes": len(SHARED)}],
+        "experiments": [{"id": "x1", "title": "the fixture run", "config": "seed 1", "metrics": ["metric=0.71 (n=1)"],
+                         "files": ["evidence/shared.csv"], "records": [RID]}],
+        "dependencies": [{"kind": "dataset", "ref": "synthetic", "pinned": "n/a"}],
+        "reproduction": {"environment": "python3 stdlib", "commands": ["python3 sim.py"], "expectedOutputs": ["shared.csv"]},
+        "disclosure": {"withheld": ["raw session"], "redactions": [], "verifiabilityImpact": "none"},
+        "credit": {"authors": [{"name": "Octo Cat", "github": "octo"}], "registrySubmitter": "octo"},
+        "license": "CC-BY-4.0",
+        "publication": {"status": "candidate", "published": "2026-10-16"},
+    }
+
+
+def write_package(reg: "Registry", package: dict, shared: bytes = SHARED) -> None:
+    d = reg.root / "packages" / package["id"]
+    (d / "evidence").mkdir(parents=True, exist_ok=True)
+    (d / "evidence" / "shared.csv").write_bytes(shared)
+    (d / "package.json").write_text(json.dumps(package, indent=2))
+
+
+class PackageTests(unittest.TestCase):
+    def run_with(self, package: dict, record: dict = None, shared: bytes = SHARED):
+        reg = Registry(record or base_record())
+        try:
+            write_package(reg, package, shared)
+            return reg.run()
+        finally:
+            reg.close()
+
+    def test_a_package_of_existing_records_is_valid(self):
+        result = self.run_with(base_package())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("1 package(s)", result.stdout)
+
+    def test_members_must_exist_at_that_revision(self):
+        package = base_package()
+        package["records"] = [{"id": RID, "revision": 2}]
+        self.assertIn("is not a record in this registry at that revision", self.run_with(package).stderr)
+        package["records"] = [{"id": "octo.missing", "revision": 1}]
+        self.assertIn("is not a record in this registry", self.run_with(package).stderr)
+
+    def test_shared_files_are_pinned_and_scanned(self):
+        self.assertIn("does not match its manifest", self.run_with(base_package(), shared=b"tampered\n").stderr)
+        self.assertIn("absolute home path", self.run_with(base_package(), shared=b"see /home/alice/x\n").stderr)
+
+    def test_a_record_can_point_at_package_evidence(self):
+        record = base_record()
+        record["evidence"].append({
+            "id": "e2", "relation": "supports", "sourceKind": "run", "disclosure": "checkable-data",
+            "title": "shared run", "description": "the package's run table", "originGroup": "fixture-run",
+            "locator": {"type": "package", "package": PID, "path": "evidence/shared.csv"}})
+        result = self.run_with(base_package(), record)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        record["evidence"][1]["locator"]["path"] = "evidence/other.csv"
+        self.assertIn("package locator must name a package", self.run_with(base_package(), record).stderr)
+
+    def test_unknown_fields_and_experiment_references_are_refused(self):
+        package = base_package()
+        package["validated"] = True
+        self.assertIn("unknown fields: ['validated']", self.run_with(package).stderr)
+        package = base_package()
+        package["experiments"][0]["records"] = ["octo.other"]
+        self.assertIn("names a record that is not a member", self.run_with(package).stderr)
+
+    def test_packages_are_append_only_and_indexed(self):
+        reg = Registry(base_record())
+        try:
+            write_package(reg, base_package())
+            reg.git("init", "-q", "-b", "main")
+            subprocess.run([sys.executable, "-I", str(reg.root / "scripts" / "build-index.py")], cwd=reg.root, check=True, capture_output=True)
+            index = json.loads((reg.root / "knowledge.json").read_text())
+            self.assertEqual(index["packages"][0]["records"], [f"{RID}@r1"])
+            self.assertEqual([e["id"] for e in index["entries"]], [RID], "entries stay records only")
+            reg.git("add", "-A")
+            reg.git("commit", "-q", "-m", "base")
+            changed = base_package()
+            changed["summary"] = "Edited without a new revision."
+            write_package(reg, changed)
+            self.assertIn("changed without a new revision", reg.run("--base", "main").stderr)
+            shutil.rmtree(reg.root / "packages" / PID)
+            self.assertIn("published packages cannot be deleted", reg.run("--base", "main").stderr)
+        finally:
+            reg.close()
+
+
 class ValidateTests(unittest.TestCase):
     def check(self, record: dict, expect: str = "", data: bytes = DATA):
         reg = Registry(record, data)
