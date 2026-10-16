@@ -1,4 +1,18 @@
 {
   "schemaVersion": 1,
-  "entries": []
+  "entries": [
+    {
+      "id": "huiel.small-benchmark-paired-bootstrap-power",
+      "name": "Simulated: 100-200 item benchmarks rarely resolve a 5-point gap",
+      "summary": "Monte Carlo simulation, binary-scored items at about 70% accuracy, item-level correlation between arms about 0.25-0.64: a paired bootstrap 95% CI detects a true 5-point gap in only 13-19% of 100-item comparisons and 20-34% of 200-item ones; at 500 items detection rises to 51-76%. At that gap the median CI half-width is 8.0-10.5 pp at n=100, 5.8-7.8 pp at n=200 and 3.6-4.8 pp at n=500 (pooled over gaps 0-10: 7.5-11.0, 5.3-7.8, 3.4-4.9).",
+      "delivery": "record",
+      "version": "r1",
+      "revision": "d5350174b4386faf29c1f423a89ec0eb81d645c3",
+      "entryPath": "entries/knowledge/huiel.small-benchmark-paired-bootstrap-power/record.json",
+      "entrySha256": "989cda304769de1f69d8f67136b7414e0eea081c36b72a56880560b2a7e33e34",
+      "kind": "finding",
+      "publicationStatus": "candidate",
+      "evidenceCount": 2
+    }
+  ]
 }
