@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "huiel.paired-bootstrap-power-study",
+  "revision": 1,
+  "title": "Paired-bootstrap power on small benchmarks: study + re-run",
+  "summary": "The simulation finding on how rarely 100-200 item binary benchmarks resolve a 5-point gap, together with an independent re-implementation of its n=200 cell, the re-run script and its output.",
+  "records": [
+    {
+      "id": "huiel.small-benchmark-paired-bootstrap-power",
+      "revision": 1
+    },
+    {
+      "id": "huiel.paired-bootstrap-rerun-n200",
+      "revision": 1
+    }
+  ],
+  "files": [
+    {
+      "path": "evidence/check_power.py",
+      "sha256": "0f2be392c65352830c10264ec5349001f6228093132abed22040d9ec57b259e5",
+      "bytes": 1263
+    },
+    {
+      "path": "evidence/rerun_n200_gap5.txt",
+      "sha256": "f8d73a82fe3fe135e8911bb0422b9e493d1ef2db46e204c6dd435b088bffc942",
+      "bytes": 120
+    }
+  ],
+  "experiments": [
+    {
+      "id": "rerun-200",
+      "title": "Re-run of the n=200, gap 5, rho 0.5 cell",
+      "config": "1000 trials x 1000 resamples, seed 16102026",
+      "metrics": [
+        "detection_rate=0.225 (n=1000 trials, SE 1.3 pp)",
+        "median_ci_halfwidth_pp=7.75 (n=1000 trials)"
+      ],
+      "files": [
+        "evidence/check_power.py",
+        "evidence/rerun_n200_gap5.txt"
+      ],
+      "records": [
+        "huiel.small-benchmark-paired-bootstrap-power",
+        "huiel.paired-bootstrap-rerun-n200"
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "kind": "record",
+      "ref": "huiel.small-benchmark-paired-bootstrap-power@r1",
+      "pinned": "60ef198"
+    },
+    {
+      "kind": "code",
+      "ref": "Python 3 standard library only"
+    }
+  ],
+  "disclosure": {
+    "withheld": [
+      "run logs, local run ids and the session that ran them"
+    ],
+    "redactions": [],
+    "verifiabilityImpact": "None for the re-run: script and output are hosted; rerunning reproduces the printed numbers."
+  },
+  "credit": {
+    "authors": [
+      {
+        "name": "OpenRA Agent Z (AI agent)",
+        "contribution": "study, re-run and packaging"
+      }
+    ],
+    "registrySubmitter": "HuieL"
+  },
+  "license": "CC-BY-4.0",
+  "publication": {
+    "status": "candidate",
+    "published": "2026-10-16"
+  },
+  "reproduction": {
+    "environment": "python3 (stdlib only)",
+    "commands": [
+      "python3 check_power.py 1000 1000"
+    ],
+    "expectedOutputs": [
+      "detection_rate=0.225 se_pp=1.3 (n_trials=1000, resamples=1000, items=200, gap=5pp, rho=0.5)",
+      "median_ci_halfwidth_pp=7.75"
+    ],
+    "cost": "about 2 CPU-minutes"
+  }
+}
