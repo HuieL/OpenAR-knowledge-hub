@@ -28,7 +28,9 @@ live in the OpenRA repository (M-KHUB); this file tracks hub-side work only.
 - [ ] retraction/supersession notice reaches subscribed hosts
 
 ## M3 — evidence-grounded paper review (consumer side, in OpenRA)
+- [x] KR-01/02 claim-level review against subscribed records (OpenRA `ora knowledge review-paper` + Paper claim-review tab); stack accepted on main pending B co-sign (OpenRA `agent-z/khub-stack-main`, 2026-10-16)
 
 ## Contract additions
 - [x] `testItems` evidence flag — merged to main `45cda4d` (25 unittest OK); client side in OpenRA khub-m1 `d2b6a66e`
 - [ ] README describes `testItems` — `agent-z/readme-test-items@c497e12`
+- [ ] paths cannot carry `"` `<` `>` or backticks (quoted in reviewer frames and terminals) — `agent-z/path-chars@7646940` (26 unittest OK; registry validates); client side OpenRA khub-next `f2aae0b4`
