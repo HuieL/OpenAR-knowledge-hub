@@ -4,6 +4,7 @@ Lives only on the `todo` branch; never merged into `main`. Spec and receipts
 live in the OpenRA repository (M-KHUB); this file tracks hub-side work only.
 
 ## Waiting on the user
+- [ ] 「发布」: list the first Knowledge Package publicly — `agent-z/package-study@119b454` (+ docs `agent-z/package-docs@157493e`); contract `8d7c608` already on main (Review merged it as infrastructure, user to confirm)
 - [x] USR-2: default branch is `main` (user, 2026-10-16)
 - [x] #55: first record published — `main` 60ef198 (via the client's real publish path, run by Agent Z on the owner's delegation; scope review qualifies → fixed → endorses)
 
@@ -30,6 +31,12 @@ live in the OpenRA repository (M-KHUB); this file tracks hub-side work only.
 
 ## M3 — evidence-grounded paper review (consumer side, in OpenRA)
 - [x] KR-01/02 claim-level review against subscribed records (OpenRA `ora knowledge review-paper` + Paper claim-review tab); stack accepted on main pending B co-sign (OpenRA `agent-z/khub-stack-main`, 2026-10-16)
+
+## Knowledge Packages (2026-10-16/17)
+- [x] package contract: `packages/<id>/package.json`, `package` locator, validator + index + tests — main `8d7c608`
+- [ ] first package `huiel.paired-bootstrap-power-study` — `agent-z/package-study@119b454`; the client's `--rehearse` from public main reproduces its tree byte for byte (OpenRA `docs/acceptance/khub/package-e2e-20261016/63-package-rehearsal.txt`); waits for the user's 「发布」
+- [ ] CONTRIBUTING: publishing a package; hosted scripts are read, never executed — `agent-z/package-docs@157493e` (with the package)
+- [~] index facets per record (conditions, disclosures, checks) for Discover cards/filters — `agent-z/index-facets@700213a` (32/32); the client writes the same bytes; merging with OpenRA khub-next in train-1017c
 
 ## Contract additions
 - [x] `testItems` evidence flag — merged to main `45cda4d` (25 unittest OK); client side in OpenRA khub-m1 `d2b6a66e`
