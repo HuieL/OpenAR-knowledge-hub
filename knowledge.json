@@ -12,7 +12,21 @@
       "entrySha256": "4cea81e134d019772405cc72d2b393507d070fc16f231008a0958093b002d4f0",
       "kind": "finding",
       "publicationStatus": "candidate",
-      "evidenceCount": 4
+      "evidenceCount": 4,
+      "conditions": {
+        "analysis": "paired bootstrap 95% CI on the accuracy difference",
+        "items": "100-500 items",
+        "metric": "accuracy (binary per-item correctness)",
+        "task": "comparing two systems or prompts on one shared benchmark"
+      },
+      "disclosures": [
+        "checkable-data",
+        "reproducible-package"
+      ],
+      "checks": [
+        "content-review/same-team",
+        "independent-rerun/author"
+      ]
     }
   ]
 }
