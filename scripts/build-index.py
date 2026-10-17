@@ -55,7 +55,7 @@ def build() -> dict:
                     "kind": record["kind"],
                     "publicationStatus": record["publication"]["status"],
                     "evidenceCount": len(record["evidence"]),
-                    "conditions": record.get("applicability", {}).get("conditions", {}),
+                    "conditions": dict(sorted(record.get("applicability", {}).get("conditions", {}).items())),
                     "disclosures": sorted({e["disclosure"] for e in record["evidence"]}),
                     "checks": sorted(
                         {f"{a['checkType']}/{a['independence']}" for a in record.get("assessments", [])}

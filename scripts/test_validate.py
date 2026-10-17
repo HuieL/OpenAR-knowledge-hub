@@ -178,7 +178,7 @@ class PackageTests(unittest.TestCase):
             self.assertEqual([e["id"] for e in index["entries"]], [RID], "entries stay records only")
             row = index["entries"][0]
             record = base_record()
-            self.assertEqual(row["conditions"], record["applicability"]["conditions"], "conditions mirror the record")
+            self.assertEqual(row["conditions"], dict(sorted(record["applicability"]["conditions"].items())), "conditions mirror the record, keys sorted")
             self.assertEqual(row["disclosures"], sorted({e["disclosure"] for e in record["evidence"]}))
             self.assertEqual(row["checks"], sorted({f"{a['checkType']}/{a['independence']}" for a in record.get("assessments", [])}))
             reg.git("add", "-A")
