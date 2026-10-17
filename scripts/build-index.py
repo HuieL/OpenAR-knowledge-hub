@@ -9,8 +9,12 @@ Row contract (shared with the other OpenAR hub indexes): id, name, summary,
 delivery, version, revision, entryPath, entrySha256. `revision` is the git
 object id of record.json (what `git hash-object record.json` prints), so a
 reader can match the pinned bytes against any clone. Knowledge-only display
-fields (kind, publicationStatus, evidenceCount) follow; the record itself is
-the only authority.
+fields (kind, publicationStatus, evidenceCount, conditions, disclosures,
+checks) follow, so a catalog can filter and badge records without fetching
+each one; the record itself is the only authority. `conditions` is the
+record's applicability.conditions map, `disclosures` the distinct evidence
+disclosure levels, `checks` the distinct `checkType/independence` pairs of
+its assessments — what was checked and by whom, never a verdict.
 
 Knowledge Packages are listed under a separate top-level `packages` key (the
 shared `entries` row contract stays records only, so clients that predate
@@ -51,6 +55,11 @@ def build() -> dict:
                     "kind": record["kind"],
                     "publicationStatus": record["publication"]["status"],
                     "evidenceCount": len(record["evidence"]),
+                    "conditions": dict(sorted(record.get("applicability", {}).get("conditions", {}).items())),
+                    "disclosures": sorted({e["disclosure"] for e in record["evidence"]}),
+                    "checks": sorted(
+                        {f"{a['checkType']}/{a['independence']}" for a in record.get("assessments", [])}
+                    ),
                 }
             )
     rows.sort(key=lambda row: row["id"])
