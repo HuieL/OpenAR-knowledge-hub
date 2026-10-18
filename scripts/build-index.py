@@ -19,7 +19,9 @@ its assessments — what was checked and by whom, never a verdict.
 Knowledge Packages are listed under a separate top-level `packages` key (the
 shared `entries` row contract stays records only, so clients that predate
 packages keep working): id, name, summary, version, revision, entryPath,
-entrySha256, records (member `id@rN`).
+entrySha256, records (member `id@rN`), and `hasReproductionProfile: true`
+when the package hosts evidence/reproduction.profile.json (absent otherwise,
+so rows of packages without one are unchanged).
 """
 
 import hashlib
@@ -80,6 +82,8 @@ def build() -> dict:
                     "entrySha256": hashlib.sha256(raw).hexdigest(),
                     "records": [f"{m['id']}@r{m['revision']}" for m in package["records"]],
                     "publicationStatus": package["publication"]["status"],
+                    **({"hasReproductionProfile": True}
+                       if any(f.get("path") == "evidence/reproduction.profile.json" for f in package.get("files", [])) else {}),
                 }
             )
     if packages:
