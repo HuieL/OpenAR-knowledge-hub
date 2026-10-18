@@ -2,6 +2,19 @@
   "schemaVersion": 1,
   "entries": [
     {
+      "id": "huiel.paired-bootstrap-rerun-n200",
+      "name": "Re-run: 200 items detect a 5-point gap in ~22% of comparisons",
+      "summary": "An independent re-implementation (new script and seed) of one cell of the paired-bootstrap power simulation: 200 binary items, ~70% base accuracy, a true 5-point gap and shared-difficulty mixing rho 0.5 — the 95% CI excludes zero in 22.5% of 1000 comparisons (SE 1.3 pp), median half-width 7.75 points.",
+      "delivery": "record",
+      "version": "r1",
+      "revision": "6d04ded85c0c019460ab89b91b702132739a77df",
+      "entryPath": "entries/knowledge/huiel.paired-bootstrap-rerun-n200/record.json",
+      "entrySha256": "5ae5b3bcad540bedc854eaf815b632f4d0f73628911be0331fffb589f42cadc9",
+      "kind": "finding",
+      "publicationStatus": "candidate",
+      "evidenceCount": 2
+    },
+    {
       "id": "huiel.small-benchmark-paired-bootstrap-power",
       "name": "Simulated: 100-200 item benchmarks rarely resolve a 5-point gap",
       "summary": "Monte Carlo simulation, binary-scored items at about 70% accuracy, item-level correlation between arms about 0.25-0.64: a paired bootstrap 95% CI detects a true 5-point gap in only 13-19% of 100-item comparisons and 20-34% of 200-item ones; at 500 items detection rises to 51-76%. At that gap the median CI half-width is 8.0-10.5 pp at n=100, 5.8-7.8 pp at n=200 and 3.6-4.8 pp at n=500 (pooled over gaps 0-10: 7.5-11.0, 5.3-7.8, 3.4-4.9).",
@@ -27,6 +40,22 @@
         "content-review/same-team",
         "independent-rerun/author"
       ]
+    }
+  ],
+  "packages": [
+    {
+      "id": "huiel.paired-bootstrap-power-study",
+      "name": "Paired-bootstrap power on small benchmarks: study + re-run",
+      "summary": "The simulation finding on how rarely 100-200 item binary benchmarks resolve a 5-point gap, together with an independent re-implementation of its n=200 cell, the re-run script and its output.",
+      "version": "r1",
+      "revision": "5a1e35e7a02630caeaad3101bfc01eded53f9458",
+      "entryPath": "packages/huiel.paired-bootstrap-power-study/package.json",
+      "entrySha256": "aa9e8941c0b1b12e3520af8b0242fc37591f420d15a9c0e5cebc4b2c90b6254f",
+      "records": [
+        "huiel.small-benchmark-paired-bootstrap-power@r1",
+        "huiel.paired-bootstrap-rerun-n200@r1"
+      ],
+      "publicationStatus": "candidate"
     }
   ]
 }

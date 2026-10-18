@@ -1,0 +1,2 @@
+detection_rate=0.225 se_pp=1.3 (n_trials=1000, resamples=1000, items=200, gap=5pp, rho=0.5)
+median_ci_halfwidth_pp=7.75
