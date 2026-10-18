@@ -12,7 +12,18 @@
       "entrySha256": "5ae5b3bcad540bedc854eaf815b632f4d0f73628911be0331fffb589f42cadc9",
       "kind": "finding",
       "publicationStatus": "candidate",
-      "evidenceCount": 2
+      "evidenceCount": 2,
+      "conditions": {
+        "analysis": "paired bootstrap 95% CI (percentile)",
+        "baseline": "~70% accuracy",
+        "items": "200",
+        "metric": "accuracy (binary per item)"
+      },
+      "disclosures": [
+        "checkable-data",
+        "reproducible-package"
+      ],
+      "checks": []
     },
     {
       "id": "huiel.small-benchmark-paired-bootstrap-power",
