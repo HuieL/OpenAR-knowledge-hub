@@ -193,6 +193,111 @@ class PackageTests(unittest.TestCase):
             reg.close()
 
 
+def base_profile() -> dict:
+    """A complete v1 reproduction profile for the fixture package."""
+    return {
+        "profileVersion": 1, "intent": "independent-rerun",
+        "records": [{"id": RID, "revision": 1}],
+        "experiments": [{
+            "id": "x1", "title": "the fixture run",
+            "execution": {"status": "done", "exitCode": 0},
+            "relations": {RID: "supports"},
+            "source": {"repo": "octo/sim", "commit": "0123456789abcdef0123456789abcdef01234567", "entry": "sim.py", "patches": []},
+            "environment": {"os": "linux", "arch": "x86_64", "language": "python 3.12", "lockfile": None, "notes": None},
+            "parameters": [
+                {"name": "seed", "type": "int", "value": 1, "unit": None, "required": True, "adjustable": False,
+                 "source": {"kind": "run-config", "ref": "evidence/shared.csv#/run"}},
+                {"name": "n", "type": "int", "value": None, "required": False, "adjustable": True,
+                 "source": {"kind": "agent-suggested", "ref": None}},
+            ],
+            "inputs": [{"kind": "dataset", "ref": "synthetic", "version": "n/a", "split": None, "sha256": None, "access": "public"}],
+            "procedure": [{"step": "run", "command": "python3 sim.py --seed 1", "workdir": ".", "outputs": ["evidence/shared.csv"]}],
+            "evaluation": {"baseline": "arm A", "metric": "accuracy", "denominator": "items", "seeds": [1], "repetitions": 1,
+                           "outputContract": "csv run,metric", "scorer": "exact", "tolerance": {"metric": "accuracy", "abs": 0.01, "rel": None}},
+            "resources": {"cpu": "1 core", "gpu": None, "ramGb": 1, "diskGb": None, "time": "1 min", "cost": "free"},
+            "results": {"expectedArtifacts": ["evidence/shared.csv"], "supportsIf": "B > A", "refutesIf": "B <= A", "invalidIf": "crash"},
+            "files": ["evidence/shared.csv"],
+            "missing": [],
+        }],
+        "missing": [], "notReproducible": [],
+    }
+
+
+class ProfileTests(unittest.TestCase):
+    """evidence/reproduction.profile.json: optional, structural, never executed."""
+
+    def run_with(self, profile, package: dict = None):
+        package = package or base_package()
+        reg = Registry(base_record())
+        try:
+            write_package(reg, package)
+            if profile is not None:
+                body = json.dumps(profile, indent=2).encode() if isinstance(profile, dict) else profile
+                (reg.root / "packages" / PID / "evidence" / "reproduction.profile.json").write_bytes(body)
+                (reg.root / "packages" / PID / "package.json").write_text(json.dumps({**package, "files": package["files"] + [
+                    {"path": "evidence/reproduction.profile.json", "sha256": hashlib.sha256(body).hexdigest(), "bytes": len(body)}]}, indent=2))
+            return reg.run()
+        finally:
+            reg.close()
+
+    def test_a_package_with_a_complete_profile_is_valid(self):
+        result = self.run_with(base_profile())
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_an_old_package_without_a_profile_stays_valid(self):
+        result = self.run_with(None)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_references_must_be_hosted_files(self):
+        profile = base_profile()
+        profile["experiments"][0]["files"] = ["evidence/absent.csv"]
+        self.assertIn("which the package does not host", self.run_with(profile).stderr)
+        profile = base_profile()
+        profile["experiments"][0]["parameters"][0]["source"]["ref"] = "evidence/absent.json#/seed"
+        self.assertIn("which the package does not host", self.run_with(profile).stderr)
+
+    def test_relations_and_records_must_be_members(self):
+        profile = base_profile()
+        profile["experiments"][0]["relations"] = {"octo.not-a-member": "supports"}
+        self.assertIn("which is not a member record", self.run_with(profile).stderr)
+        profile = base_profile()
+        profile["records"] = [{"id": RID, "revision": 2}]
+        self.assertIn("is not a member of the package at that revision", self.run_with(profile).stderr)
+        profile = base_profile()
+        profile["experiments"][0]["relations"] = {RID: "related"}
+        self.assertIn("relations has an invalid value", self.run_with(profile).stderr)
+
+    def test_unknown_intent_and_experiment_are_refused(self):
+        profile = base_profile()
+        profile["intent"] = "verified"
+        self.assertIn("intent has an invalid value", self.run_with(profile).stderr)
+        profile = base_profile()
+        profile["experiments"][0]["id"] = "x9"
+        self.assertIn("is not an experiment of the package", self.run_with(profile).stderr)
+
+    def test_parameter_sources_are_typed_and_suggestions_are_not_requirements(self):
+        profile = base_profile()
+        profile["experiments"][0]["parameters"][0]["source"]["kind"] = "guess"
+        self.assertIn("source has an invalid value", self.run_with(profile).stderr)
+        profile = base_profile()
+        profile["experiments"][0]["parameters"][1]["required"] = True
+        self.assertIn("agent-suggested parameter cannot be required without a value", self.run_with(profile).stderr)
+
+    def test_secrets_and_local_paths_in_commands_are_flagged(self):
+        profile = base_profile()
+        profile["experiments"][0]["procedure"][0]["command"] = "API_KEY=sk-abcdefghijklmnopqrstuvwxyz python3 sim.py"
+        self.assertIn("contains a API key", self.run_with(profile).stderr)
+        profile = base_profile()
+        profile["experiments"][0]["procedure"][0]["workdir"] = "/home/alice/sim"
+        self.assertIn("absolute home path", self.run_with(profile).stderr)
+
+    def test_unknown_fields_and_bad_json_are_refused(self):
+        profile = base_profile()
+        profile["experiments"][0]["verified"] = True
+        self.assertIn("must be an object with", self.run_with(profile).stderr)
+        self.assertIn("is not readable JSON", self.run_with(b"{not json").stderr)
+
+
 class ValidateTests(unittest.TestCase):
     def check(self, record: dict, expect: str = "", data: bytes = DATA):
         reg = Registry(record, data)

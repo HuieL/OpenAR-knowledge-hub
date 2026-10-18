@@ -563,6 +563,148 @@ def check_files(where: str, base: pathlib.Path, files, manifest_name: str) -> di
     return hosted
 
 
+# --- Reproduction profile (v1) ----------------------------------------------
+# evidence/reproduction.profile.json is a package's structured reproduction
+# contract and its single source (the legacy `reproduction` text is generated
+# from it). Optional: packages without it stay valid. Only its shape and its
+# references are checked here; nothing in it is ever executed.
+PROFILE_PATH = "evidence/reproduction.profile.json"
+PROFILE_INTENTS = {"analysis-recompute", "independent-rerun", "transfer-validation"}
+RELATIONS = {"supports", "contradicts", "qualifies", "inconclusive"}
+PARAM_SOURCES = {"run-config", "run-record", "author", "agent-suggested"}
+INPUT_KINDS = {"dataset", "model", "file", "code", "other"}
+INPUT_ACCESS = {"public", "restricted", "private", "unknown", None}
+STEPS = {"setup", "run", "evaluate", "analyze"}
+
+
+def opt_text(value, max_chars: int) -> bool:
+    """A known value is non-empty text; an unknown one is null (never guessed)."""
+    return value is None or text(value, max_chars)
+
+
+def opt_number(value) -> bool:
+    return value is None or (isinstance(value, (int, float)) and not isinstance(value, bool))
+
+
+def scalar(value) -> bool:
+    return value is None or isinstance(value, (str, int, float, bool)) and (not isinstance(value, str) or len(value) <= 500)
+
+
+def shape(where: str, value, fields: dict, required=()) -> bool:
+    """`value` is an object with only `fields` (name -> predicate) and `required`."""
+    if not isinstance(value, dict) or set(value) - set(fields) or set(required) - set(value):
+        fail(where, f"must be an object with {sorted(fields)} (required {sorted(required)})")
+        return False
+    ok = True
+    for key, check in fields.items():
+        if key in value and not check(value[key]):
+            fail(where, f"{key} has an invalid value")
+            ok = False
+    return ok
+
+
+def check_profile(pid: str, package_dir: pathlib.Path, package: dict, members: dict, hosted: dict, experiment_ids: set) -> None:
+    where = f"{pid} {PROFILE_PATH}"
+    try:
+        profile = json.loads((package_dir / PROFILE_PATH).read_bytes())
+    except (OSError, ValueError) as e:
+        fail(where, f"is not readable JSON: {e}")
+        return
+    for problem in unsafe_strings(profile):
+        fail(where, f"unsafe text at {problem}")
+    listed = lambda v, n, item: isinstance(v, list) and len(v) <= n and all(item(x) for x in v)
+    if not shape(where, profile, {
+        "profileVersion": lambda v: v == 1,
+        "intent": lambda v: v in PROFILE_INTENTS,
+        "records": lambda v: listed(v, 32, lambda r: isinstance(r, dict) and set(r) == {"id", "revision"}),
+        "experiments": lambda v: isinstance(v, list) and len(v) <= 32,
+        "missing": lambda v: text_list(v, 32, 500),
+        "notReproducible": lambda v: text_list(v, 32, 500),
+    }, ("profileVersion", "intent", "records", "experiments")):
+        return
+    for r in profile["records"]:
+        if members.get(r["id"]) != r["revision"]:
+            fail(where, f"record {r['id']}@r{r['revision']} is not a member of the package at that revision")
+
+    def hosted_ref(at: str, ref) -> None:
+        # Only evidence/ paths are package files; other refs (URLs, dataset ids) are free text.
+        if isinstance(ref, str) and ref.startswith("evidence/"):
+            path = ref.split("#", 1)[0]
+            if path not in hosted:
+                fail(where, f"{at} refers to {path!r}, which the package does not host")
+
+    seen = set()
+    for i, exp in enumerate(profile["experiments"]):
+        at = f"experiments/{i}"
+        if not shape(f"{where} {at}", exp, {
+            "id": lambda v: isinstance(v, str) and bool(EVIDENCE_ID.match(v)),
+            "title": lambda v: text(v, 200),
+            "execution": lambda v: isinstance(v, dict) and not set(v) - {"status", "exitCode"}
+            and opt_text(v.get("status"), 40) and (v.get("exitCode") is None or (isinstance(v["exitCode"], int) and not isinstance(v["exitCode"], bool))),
+            "relations": lambda v: isinstance(v, dict) and len(v) <= 32 and all(rel in RELATIONS for rel in v.values()),
+            "source": lambda v: isinstance(v, dict) and not set(v) - {"repo", "commit", "entry", "patches"}
+            and opt_text(v.get("repo"), 300) and opt_text(v.get("commit"), 100) and opt_text(v.get("entry"), 300)
+            and text_list(v.get("patches", []), 8, 300),
+            "environment": lambda v: isinstance(v, dict) and not set(v) - {"os", "arch", "language", "lockfile", "notes"}
+            and all(opt_text(v.get(k), n) for k, n in (("os", 500), ("arch", 100), ("language", 200), ("lockfile", 300), ("notes", 500))),
+            "parameters": lambda v: isinstance(v, list) and len(v) <= 64,
+            "inputs": lambda v: isinstance(v, list) and len(v) <= 16,
+            "procedure": lambda v: isinstance(v, list) and len(v) <= 16,
+            "evaluation": lambda v: isinstance(v, dict) and not set(v) - {"baseline", "metric", "denominator", "seeds", "repetitions", "outputContract", "scorer", "tolerance"}
+            and all(opt_text(v.get(k), 500) for k in ("baseline", "metric", "denominator", "outputContract", "scorer"))
+            and (v.get("seeds") is None or listed(v["seeds"], 32, lambda s: isinstance(s, int) and not isinstance(s, bool)))
+            and (v.get("repetitions") is None or (isinstance(v["repetitions"], int) and not isinstance(v["repetitions"], bool) and v["repetitions"] >= 1))
+            and (v.get("tolerance") is None or (isinstance(v["tolerance"], dict) and not set(v["tolerance"]) - {"metric", "abs", "rel"}
+                 and opt_text(v["tolerance"].get("metric"), 200) and opt_number(v["tolerance"].get("abs")) and opt_number(v["tolerance"].get("rel")))),
+            "resources": lambda v: isinstance(v, dict) and not set(v) - {"cpu", "gpu", "ramGb", "diskGb", "time", "cost"}
+            and all(opt_text(v.get(k), 200) for k in ("cpu", "gpu", "time", "cost")) and opt_number(v.get("ramGb")) and opt_number(v.get("diskGb")),
+            "results": lambda v: isinstance(v, dict) and not set(v) - {"expectedArtifacts", "supportsIf", "refutesIf", "invalidIf"}
+            and text_list(v.get("expectedArtifacts", []), 16, 300) and all(opt_text(v.get(k), 500) for k in ("supportsIf", "refutesIf", "invalidIf")),
+            "files": lambda v: text_list(v, 64, 300),
+            "missing": lambda v: text_list(v, 32, 500),
+        }, ("id", "title")):
+            continue
+        if exp["id"] in seen:
+            fail(where, f"experiment {exp['id']!r} is listed twice")
+        seen.add(exp["id"])
+        if exp["id"] not in experiment_ids:
+            fail(where, f"experiment {exp['id']!r} is not an experiment of the package")
+        for record_id in exp.get("relations", {}):
+            if record_id not in members:
+                fail(where, f"experiment {exp['id']!r} relates to {record_id!r}, which is not a member record")
+        for path in exp.get("files", []):
+            hosted_ref(f"{at}/files", path)
+        hosted_ref(f"{at}/environment/lockfile", exp.get("environment", {}).get("lockfile"))
+        for path in exp.get("results", {}).get("expectedArtifacts", []):
+            hosted_ref(f"{at}/results", path)
+        for j, param in enumerate(exp.get("parameters", [])):
+            pat = f"{at}/parameters/{j}"
+            if not shape(f"{where} {pat}", param, {
+                "name": lambda v: text(v, 100), "type": lambda v: opt_text(v, 40),
+                "value": lambda v: scalar(v) or listed(v, 16, scalar), "unit": lambda v: opt_text(v, 40),
+                "required": lambda v: isinstance(v, bool), "adjustable": lambda v: isinstance(v, bool),
+                "source": lambda v: isinstance(v, dict) and not set(v) - {"kind", "ref"} and v.get("kind") in PARAM_SOURCES and opt_text(v.get("ref"), 300),
+            }, ("name", "source")):
+                continue
+            hosted_ref(f"{pat}/source", param["source"].get("ref"))
+            # A suggestion is never presented as a recorded requirement.
+            if param["source"]["kind"] == "agent-suggested" and param.get("required") and param.get("value") is None:
+                fail(where, f"{pat}: an agent-suggested parameter cannot be required without a value")
+        for j, item in enumerate(exp.get("inputs", [])):
+            shape(f"{where} {at}/inputs/{j}", item, {
+                "kind": lambda v: v in INPUT_KINDS, "ref": lambda v: text(v, 300), "version": lambda v: opt_text(v, 200),
+                "split": lambda v: opt_text(v, 200), "sha256": lambda v: v is None or (isinstance(v, str) and bool(HEX64.match(v))),
+                "access": lambda v: v in INPUT_ACCESS,
+            }, ("kind", "ref"))
+        for j, step in enumerate(exp.get("procedure", [])):
+            if shape(f"{where} {at}/procedure/{j}", step, {
+                "step": lambda v: v in STEPS, "command": lambda v: text(v, 2000), "workdir": lambda v: opt_text(v, 300),
+                "outputs": lambda v: text_list(v, 16, 300),
+            }, ("step", "command")):
+                for path in step.get("outputs", []):
+                    hosted_ref(f"{at}/procedure/{j}/outputs", path)
+
+
 def load_package_files() -> None:
     """Pass 1: the file manifests, so record locators can point into packages."""
     if not PACKAGES.is_dir():
@@ -655,6 +797,9 @@ def check_package(package_dir: pathlib.Path, revisions: dict) -> None:
             fail(pid, f"experiment {exp['id']!r} names a file the package does not list")
         if any(r not in seen for r in exp.get("records", [])):
             fail(pid, f"experiment {exp['id']!r} names a record that is not a member")
+    if PROFILE_PATH in files:
+        check_profile(pid, package_dir, package, {m["id"]: m["revision"] for m in records if isinstance(m, dict) and "id" in m},
+                      files, {e.get("id") for e in experiments if isinstance(e, dict)})
     deps = package.get("dependencies", [])
     if not isinstance(deps, list) or len(deps) > 32 or any(
         not isinstance(d, dict) or set(d) - {"kind", "ref", "pinned", "note"} or d.get("kind") not in DEPENDENCY_KINDS

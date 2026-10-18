@@ -57,6 +57,29 @@ Hosted scripts (`.py`) are evidence to read and rerun by hand. Nothing in this
 repository is executed — not by CI, not by readers' clients — and hosted files
 must not carry an executable bit.
 
+### Reproduction profile
+
+`packages/<id>/evidence/reproduction.profile.json` (optional, listed and
+hashed in `files` like any evidence, `schemas/reproduction-profile.schema.json`)
+is the package's structured reproduction contract and its **single source**:
+the package's `reproduction` text (environment, commands, expected outputs,
+cost) is generated from it, never edited beside it. Per experiment it pins the
+code (repo + commit), environment, parameters, inputs (data/model version,
+split, access), procedure, evaluation (baseline, metric, denominator, seeds,
+output contract, scorer, tolerance), resources and the support/refute/invalid
+conditions, plus the evidence relation to each member record. Every value the
+author did not type names its source (`run-config` with a file pointer,
+`run-record`, `author`, `agent-suggested` — a suggestion is never a recorded
+requirement). An unknown value is `null` and listed in `missing`; nothing is
+guessed. Packages without a profile stay valid; readers ask for the missing
+parameters instead.
+
+What a reader may claim stays separate: downloaded ≠ files verified (sha256)
+≠ plan ready ≠ run succeeded ≠ metric reproduced ≠ claim holds in the tested
+scope. A failed run is not a refutation, and a changed protocol is a transfer
+validation, never an exact reproduction. The profile is data: CI checks its
+shape and references only and never runs a command from it.
+
 The OpenAR client builds the same layout from your own project's claims:
 `ora knowledge hub package --spec <spec.json>` previews what leaves your host,
 `--rehearse <dir>` makes the branch, runs both scripts and commits locally
