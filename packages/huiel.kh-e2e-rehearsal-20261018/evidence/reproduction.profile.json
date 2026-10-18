@@ -1,0 +1,241 @@
+{
+  "profileVersion": 1,
+  "intent": "independent-rerun",
+  "records": [
+    {
+      "id": "huiel.a-200-item-binary-benchmark-resolves-a-5-point-g",
+      "revision": 1
+    }
+  ],
+  "experiments": [
+    {
+      "id": "run-1",
+      "title": "n=200 power",
+      "execution": {
+        "status": "done",
+        "exitCode": 0
+      },
+      "relations": {
+        "huiel.a-200-item-binary-benchmark-resolves-a-5-point-g": "supports"
+      },
+      "source": {
+        "repo": null,
+        "commit": "ef39d605a820020a93a3e4f6e88ec9aa9084fe95",
+        "entry": null,
+        "patches": []
+      },
+      "environment": {
+        "os": null,
+        "arch": null,
+        "language": null,
+        "lockfile": null,
+        "notes": "python3, standard library only"
+      },
+      "parameters": [
+        {
+          "name": "split",
+          "type": "string",
+          "value": "held-out",
+          "unit": null,
+          "required": true,
+          "adjustable": false,
+          "source": {
+            "kind": "run-record",
+            "ref": null
+          }
+        },
+        {
+          "name": "env.python",
+          "type": "string",
+          "value": "3",
+          "unit": null,
+          "required": true,
+          "adjustable": false,
+          "source": {
+            "kind": "run-record",
+            "ref": null
+          }
+        }
+      ],
+      "inputs": [],
+      "procedure": [
+        {
+          "step": "run",
+          "command": "python3 sim.py --n 200",
+          "workdir": null,
+          "outputs": []
+        }
+      ],
+      "evaluation": {
+        "baseline": null,
+        "metric": "power (maximize)",
+        "denominator": null,
+        "seeds": [],
+        "repetitions": null,
+        "outputContract": null,
+        "scorer": null,
+        "tolerance": null
+      },
+      "resources": {
+        "cpu": null,
+        "gpu": null,
+        "ramGb": null,
+        "diskGb": null,
+        "time": null,
+        "cost": "seconds on one CPU core"
+      },
+      "results": {
+        "expectedArtifacts": [],
+        "supportsIf": null,
+        "refutesIf": null,
+        "invalidIf": null
+      },
+      "files": [
+        "evidence/run-1/out/metrics.json",
+        "evidence/run-1/sim.py"
+      ],
+      "missing": []
+    },
+    {
+      "id": "run-2",
+      "title": "n=50 power (counterexample)",
+      "execution": {
+        "status": "done",
+        "exitCode": 0
+      },
+      "relations": {
+        "huiel.a-200-item-binary-benchmark-resolves-a-5-point-g": "contradicts"
+      },
+      "source": {
+        "repo": null,
+        "commit": "f6d17e784eba871562e8f2dc2a3697032fcd02e2",
+        "entry": null,
+        "patches": []
+      },
+      "environment": {
+        "os": null,
+        "arch": null,
+        "language": null,
+        "lockfile": null,
+        "notes": "python3, standard library only"
+      },
+      "parameters": [
+        {
+          "name": "split",
+          "type": "string",
+          "value": "held-out",
+          "unit": null,
+          "required": true,
+          "adjustable": false,
+          "source": {
+            "kind": "run-record",
+            "ref": null
+          }
+        },
+        {
+          "name": "env.python",
+          "type": "string",
+          "value": "3",
+          "unit": null,
+          "required": true,
+          "adjustable": false,
+          "source": {
+            "kind": "run-record",
+            "ref": null
+          }
+        }
+      ],
+      "inputs": [],
+      "procedure": [
+        {
+          "step": "run",
+          "command": "python3 sim.py --n 50",
+          "workdir": null,
+          "outputs": []
+        }
+      ],
+      "evaluation": {
+        "baseline": null,
+        "metric": "power (maximize)",
+        "denominator": null,
+        "seeds": [],
+        "repetitions": null,
+        "outputContract": null,
+        "scorer": null,
+        "tolerance": null
+      },
+      "resources": {
+        "cpu": null,
+        "gpu": null,
+        "ramGb": null,
+        "diskGb": null,
+        "time": null,
+        "cost": "seconds on one CPU core"
+      },
+      "results": {
+        "expectedArtifacts": [],
+        "supportsIf": null,
+        "refutesIf": null,
+        "invalidIf": null
+      },
+      "files": [
+        "evidence/run-2/out/metrics.json"
+      ],
+      "missing": []
+    },
+    {
+      "id": "run-3",
+      "title": "needs scipy",
+      "execution": {
+        "status": "failed",
+        "exitCode": 1
+      },
+      "relations": {
+        "huiel.a-200-item-binary-benchmark-resolves-a-5-point-g": "inconclusive"
+      },
+      "source": {
+        "repo": null,
+        "commit": "6ef5d964ee7e6913a7c35f5325fb5b50820a4d03",
+        "entry": null,
+        "patches": []
+      },
+      "environment": {
+        "os": null,
+        "arch": null,
+        "language": null,
+        "lockfile": null,
+        "notes": "python3, standard library only"
+      },
+      "parameters": [],
+      "inputs": [],
+      "procedure": [
+        {
+          "step": "run",
+          "command": "python3 sim.py --fail",
+          "workdir": null,
+          "outputs": []
+        }
+      ],
+      "resources": {
+        "cpu": null,
+        "gpu": null,
+        "ramGb": null,
+        "diskGb": null,
+        "time": null,
+        "cost": "seconds on one CPU core"
+      },
+      "results": {
+        "expectedArtifacts": [],
+        "supportsIf": null,
+        "refutesIf": null,
+        "invalidIf": null
+      },
+      "files": [],
+      "missing": [
+        "parameters not recorded by the run"
+      ]
+    }
+  ],
+  "missing": [],
+  "notReproducible": []
+}

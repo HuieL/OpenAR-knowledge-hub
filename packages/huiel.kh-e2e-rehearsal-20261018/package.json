@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "id": "huiel.kh-e2e-rehearsal-20261018",
+  "revision": 1,
+  "title": "[REHEARSAL, not for merge] KH-E2E two-host package",
+  "summary": "Synthetic two-host rehearsal: three toy runs (support, counterexample, failed) of a paired-bootstrap power simulation. Not a research result.",
+  "records": [
+    {
+      "id": "huiel.a-200-item-binary-benchmark-resolves-a-5-point-g",
+      "revision": 1
+    }
+  ],
+  "files": [
+    {
+      "path": "evidence/run-1/out/metrics.json",
+      "sha256": "492b71cee85c59124b72bc4dd5007967b81e3a596774826c6afc08220fa67c0d",
+      "bytes": 53
+    },
+    {
+      "path": "evidence/run-2/out/metrics.json",
+      "sha256": "d17b4f33ac2704215ca746700c8ddff6b6fb3ad4bd913c0553cac0bc94b96d61",
+      "bytes": 52
+    },
+    {
+      "path": "evidence/run-1/sim.py",
+      "sha256": "d6b2a00114738f4bd5cc776dbf9b5edb935e5cc792e17205add28404a1a4519a",
+      "bytes": 969
+    },
+    {
+      "path": "evidence/reproduction.profile.json",
+      "sha256": "ec442232844caf10f8c357ff565dfa49adabd181e1f83ee8ce550b95565ccd3a",
+      "bytes": 5586
+    }
+  ],
+  "experiments": [
+    {
+      "id": "run-1",
+      "title": "run-1: n=200 power (done, exit 0)",
+      "metrics": [],
+      "files": [
+        "evidence/run-1/out/metrics.json",
+        "evidence/run-1/sim.py"
+      ],
+      "records": [
+        "huiel.a-200-item-binary-benchmark-resolves-a-5-point-g"
+      ]
+    },
+    {
+      "id": "run-2",
+      "title": "run-2: n=50 power (counterexample) (done, exit 0)",
+      "metrics": [],
+      "files": [
+        "evidence/run-2/out/metrics.json"
+      ],
+      "records": [
+        "huiel.a-200-item-binary-benchmark-resolves-a-5-point-g"
+      ]
+    },
+    {
+      "id": "run-3",
+      "title": "run-3: needs scipy (failed, exit 1)",
+      "metrics": [],
+      "files": [],
+      "records": [
+        "huiel.a-200-item-binary-benchmark-resolves-a-5-point-g"
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "kind": "dataset",
+      "ref": "full 200-item benchmark samples.csv (32 MB, not hosted)"
+    }
+  ],
+  "disclosure": {
+    "withheld": [
+      "run logs, local run ids and the sessions that ran them"
+    ],
+    "redactions": []
+  },
+  "credit": {
+    "authors": [
+      {
+        "name": "HuieL (rehearsal)",
+        "github": "huiel"
+      }
+    ],
+    "registrySubmitter": "huiel"
+  },
+  "license": "CC-BY-4.0",
+  "publication": {
+    "status": "candidate",
+    "published": "2026-10-18"
+  },
+  "reproduction": {
+    "environment": "Structured profile: evidence/reproduction.profile.json (v1, independent-rerun); run-1: python3, standard library only; run-2: python3, standard library only; run-3: python3, standard library only",
+    "commands": [
+      "[run-1 run] python3 sim.py --n 200",
+      "[run-2 run] python3 sim.py --n 50",
+      "[run-3 run] python3 sim.py --fail"
+    ],
+    "expectedOutputs": [],
+    "cost": "run-1: seconds on one CPU core; run-2: seconds on one CPU core; run-3: seconds on one CPU core"
+  }
+}

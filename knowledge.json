@@ -2,6 +2,29 @@
   "schemaVersion": 1,
   "entries": [
     {
+      "id": "huiel.a-200-item-binary-benchmark-resolves-a-5-point-g",
+      "name": "A 200-item binary benchmark resolves a 5-point gap only about o…",
+      "summary": "A 200-item binary benchmark resolves a 5-point gap only about one time in five",
+      "delivery": "record",
+      "version": "r1",
+      "revision": "54852317eb039efe9a6522139b910a0078f70dd7",
+      "entryPath": "entries/knowledge/huiel.a-200-item-binary-benchmark-resolves-a-5-point-g/record.json",
+      "entrySha256": "f207c933a621236a1c8ee118f2862c66f3e33ff91482ebd98d18a28d3706ea8d",
+      "kind": "finding",
+      "publicationStatus": "candidate",
+      "evidenceCount": 4,
+      "conditions": {
+        "asWritten": "metric: power; benchmark = binary, 200 items; paired bootstrap",
+        "benchmark": "binary, 200 items",
+        "metric": "power"
+      },
+      "disclosures": [
+        "checkable-data",
+        "summary"
+      ],
+      "checks": []
+    },
+    {
       "id": "huiel.paired-bootstrap-rerun-n200",
       "name": "Re-run: 200 items detect a 5-point gap in ~22% of comparisons",
       "summary": "An independent re-implementation (new script and seed) of one cell of the paired-bootstrap power simulation: 200 binary items, ~70% base accuracy, a true 5-point gap and shared-difficulty mixing rho 0.5 — the 95% CI excludes zero in 22.5% of 1000 comparisons (SE 1.3 pp), median half-width 7.75 points.",
@@ -54,6 +77,20 @@
     }
   ],
   "packages": [
+    {
+      "id": "huiel.kh-e2e-rehearsal-20261018",
+      "name": "[REHEARSAL, not for merge] KH-E2E two-host package",
+      "summary": "Synthetic two-host rehearsal: three toy runs (support, counterexample, failed) of a paired-bootstrap power simulation. Not a research result.",
+      "version": "r1",
+      "revision": "b83e6c7c2caf8a9b7d578f2638c0f288209611b4",
+      "entryPath": "packages/huiel.kh-e2e-rehearsal-20261018/package.json",
+      "entrySha256": "59c774f3cf246696b609ba66d515eae43e86124fb0e58bd96893439703624a41",
+      "records": [
+        "huiel.a-200-item-binary-benchmark-resolves-a-5-point-g@r1"
+      ],
+      "publicationStatus": "candidate",
+      "hasReproductionProfile": true
+    },
     {
       "id": "huiel.paired-bootstrap-power-study",
       "name": "Paired-bootstrap power on small benchmarks: study + re-run",

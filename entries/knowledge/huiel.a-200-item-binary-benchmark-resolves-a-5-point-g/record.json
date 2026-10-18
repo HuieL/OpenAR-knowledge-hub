@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "id": "huiel.a-200-item-binary-benchmark-resolves-a-5-point-g",
+  "kind": "finding",
+  "revision": 1,
+  "title": "A 200-item binary benchmark resolves a 5-point gap only about o…",
+  "summary": "A 200-item binary benchmark resolves a 5-point gap only about one time in five",
+  "statement": {
+    "text": "A 200-item binary benchmark resolves a 5-point gap only about one time in five"
+  },
+  "applicability": {
+    "conditions": {
+      "asWritten": "metric: power; benchmark = binary, 200 items; paired bootstrap",
+      "benchmark": "binary, 200 items",
+      "metric": "power"
+    },
+    "unknowns": [
+      "tested scope not recorded"
+    ]
+  },
+  "testedScope": null,
+  "evidence": [
+    {
+      "id": "e1",
+      "relation": "supports",
+      "sourceKind": "run",
+      "disclosure": "checkable-data",
+      "title": "out/metrics.json",
+      "description": "File of run-1 (done, exit 0, commit ef39d605a820).",
+      "locator": {
+        "type": "package",
+        "path": "evidence/run-1/out/metrics.json",
+        "package": "huiel.kh-e2e-rehearsal-20261018"
+      },
+      "originGroup": "run-1"
+    },
+    {
+      "id": "e2",
+      "relation": "supports",
+      "sourceKind": "run",
+      "disclosure": "checkable-data",
+      "title": "sim.py",
+      "description": "File of run-1 (done, exit 0, commit ef39d605a820).",
+      "locator": {
+        "type": "package",
+        "path": "evidence/run-1/sim.py",
+        "package": "huiel.kh-e2e-rehearsal-20261018"
+      },
+      "originGroup": "run-1"
+    },
+    {
+      "id": "e3",
+      "relation": "contradicts",
+      "sourceKind": "run",
+      "disclosure": "checkable-data",
+      "title": "out/metrics.json",
+      "description": "File of run-2 (done, exit 0, commit f6d17e784eba).",
+      "locator": {
+        "type": "package",
+        "path": "evidence/run-2/out/metrics.json",
+        "package": "huiel.kh-e2e-rehearsal-20261018"
+      },
+      "originGroup": "run-2"
+    },
+    {
+      "id": "e4",
+      "relation": "inconclusive",
+      "sourceKind": "run",
+      "disclosure": "summary",
+      "title": "run-3 record",
+      "description": "Run run-3 (failed, exit 1, commit 6ef5d964ee7e); no hosted files — command, version and status in the reproduction profile.",
+      "locator": {
+        "type": "package",
+        "path": "evidence/reproduction.profile.json",
+        "anchor": "experiments/run-3",
+        "package": "huiel.kh-e2e-rehearsal-20261018"
+      },
+      "originGroup": "run-3"
+    }
+  ],
+  "authorReport": {
+    "localState": "candidate",
+    "decidedBy": "none"
+  },
+  "assessments": [],
+  "reuseGuidance": {},
+  "credit": {
+    "authors": [
+      {
+        "name": "HuieL (rehearsal)",
+        "github": "huiel"
+      }
+    ],
+    "registrySubmitter": "huiel"
+  },
+  "license": "CC-BY-4.0",
+  "publication": {
+    "status": "candidate",
+    "published": "2026-10-18"
+  },
+  "disclosure": {
+    "omitted": [
+      "1 local run record(s) behind the public evidence"
+    ]
+  },
+  "files": []
+}
