@@ -35,6 +35,33 @@ nothing here is ever executed by CI or by a reader.
 scientific review.** New records enter as `publication.status: "candidate"`;
 a maintainer sets `accepted` when the record is catalogued.
 
+## Publishing a Knowledge Package
+
+A package publishes several related records together with the evidence and
+experiments they share, so a reviewer sees the whole study at once.
+
+1. Create `packages/<github-login>.<slug>/package.json` following
+   `schemas/knowledge-package.schema.json`: the member records (new ones go in
+   `entries/knowledge/` in the same PR; already published ones are referenced
+   at their revision), the shared files under `packages/<id>/evidence/` with
+   sha256 and size, the experiments (config, metrics with their `n`, files,
+   records), dependencies, reproduction commands with expected outputs, and
+   what was withheld and how that limits verification.
+2. Member records point at shared files with a
+   `{"type": "package", "package": "<id>", "path": "evidence/…"}` locator, so
+   each file is hosted once.
+3. Run `python3 scripts/validate.py --base origin/main` and
+   `python3 scripts/build-index.py`, commit, and open one PR for the package.
+
+Hosted scripts (`.py`) are evidence to read and rerun by hand. Nothing in this
+repository is executed — not by CI, not by readers' clients — and hosted files
+must not carry an executable bit.
+
+The OpenAR client builds the same layout from your own project's claims:
+`ora knowledge hub package --spec <spec.json>` previews what leaves your host,
+`--rehearse <dir>` makes the branch, runs both scripts and commits locally
+without pushing, and `--submit` opens the PR with your own `gh` login.
+
 ## What must never be published
 
 Absolute or home-relative paths, local run/session ids, private hosts,
