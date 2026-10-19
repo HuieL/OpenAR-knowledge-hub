@@ -248,6 +248,17 @@ class ProfileTests(unittest.TestCase):
         result = self.run_with(None)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_an_absent_section_is_omitted_not_null(self):
+        # Found by the OpenRA two-host rehearsal (10-18): a host wrote
+        # "evaluation": null for a failed run. Absent sections are omitted.
+        profile = base_profile()
+        for key in ("evaluation", "results", "resources", "environment", "source"):
+            profile["experiments"][0].pop(key, None)
+        self.assertEqual(self.run_with(profile).returncode, 0, "omitted sections are valid")
+        profile = base_profile()
+        profile["experiments"][0]["evaluation"] = None
+        self.assertIn("evaluation has an invalid value", self.run_with(profile).stderr)
+
     def test_references_must_be_hosted_files(self):
         profile = base_profile()
         profile["experiments"][0]["files"] = ["evidence/absent.csv"]
